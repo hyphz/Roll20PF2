@@ -143,7 +143,7 @@ class Pathfinder2Utils {
     tokenIsPC(token) {
         let char = this.getCharForToken(token);
         if (char === null) return false;
-        return (char.get("controlledby").some(x => !playerIsGM(x)));
+        return (_.some(char.get("controlledby"), (x => !playerIsGM(x))));
     }
 
 
@@ -374,7 +374,7 @@ class Pathfinder2Utils {
         for (let token of allTokens) {
             let char = this.getCharForToken(token);
             if (char === null) continue;
-            if (char.get("controlledby").some(x => x === msg.playerid)) {
+            if (_.some(char.get("controlledby"),(x => x === msg.playerid))) {
                 possTokens = possTokens.push(token);
             }
         }
