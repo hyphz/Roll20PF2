@@ -677,7 +677,7 @@ class Pathfinder2Utils {
             miss: "The target doesn't believe to you and gains +4c against your lies.",
             fumble: "As failure."
         }, {
-            name: "Deception",
+            name: "Feint",
             tags: ["Mental"],
             skill: "deception",
             reqprof: "T",
