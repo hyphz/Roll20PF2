@@ -65,6 +65,7 @@ class Pathfinder2Utils {
      * @returns {Roll20Object[]} The list of selected tokens.
      */
     selectedTokens(selected) {
+        if (selected === undefined) return [];
         let realObjs = selected.map((x) => getObj(x._type, x._id));
         let tokens = realObjs.filter((x) => (x.get("_subtype") === "token"));
         return tokens;
@@ -386,7 +387,10 @@ class Pathfinder2Utils {
     message(msg) {
         if (msg.type === "api") {
             if (msg.content.startsWith("!pf")) {
-                let parts = msg.content.split(" ");
+                let allParts = msg.content.split(" ");
+                let rollTags = allParts.filter(x => x.startsWith("#")).map(x => x.slice(1));
+                let parts = _.reject(allParts, x => x.startsWith("#"));
+
                 let command = parts[1];
                 let targets = [];
                 let firstParam = 2;
@@ -430,6 +434,9 @@ class Pathfinder2Utils {
 
         on("chat:message", (msg) => this.message(msg));
 
+        if (!state.hasOwnProperty("PF2")) {
+            state.PF2 = {};
+        }
         this.abilities = [{
             name: "Decipher Writing",
             tags: ["Concentrate","Exploration","Secret"],
@@ -917,7 +924,7 @@ class Pathfinder2Utils {
             crit: "You know the creature's true intentions, and if magic is affecting it.",
             hit: "You know if the creature is behaving normally or not.",
             miss: "You believe they're behaving normally and not being deceptive.",
-            fumble: "You get the wrong idea about the their intentions."
+            fumble: "You get the wrong idea about their intentions."
         }
         ];
 
