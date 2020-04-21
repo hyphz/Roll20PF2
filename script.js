@@ -1,7 +1,34 @@
+/**
+ * @typedef {Object} Roll20Object
+ */
+
 class Pathfinder2Utils {
+
+    /**
+     * Send a message to public chat with the script's name.
+     * @param {String} msg The message to send
+     */
     send(msg) {
         sendChat("PF2", msg);
     }
+
+    /**
+     * Checks if a string parameter is effectively absent via being null or blank.
+     * @param str
+     * @returns {boolean} True if the string is effectively null.
+     */
+    isAbsentString(str) {
+        if (str === null) return true;
+        if (str === undefined) return true;
+        if (str === "") return true;
+        return false;
+    }
+
+    /**
+     * Return an ordinal number for the Pathfinder 2 skill proficiency letter specified.
+     * @param {!String} letter The skill letter.
+     * @returns {!number} An ordinal rank for the skill proficiency, with unknown valued defaulted to untrained.
+     */
 
     skillOrdinal(letter) {
         switch(letter) {
@@ -15,24 +42,49 @@ class Pathfinder2Utils {
         }
     }
 
-    safeGet(object, property) {
-        if (typeof object.get === "function") {
-            return object.get(property);
-        } else {
-            return null;
+    /**
+     * Standardise a skill proficiency letter read from a character sheet.
+     * @param {!string} letter
+     * @returns {!string}
+     */
+    standardiseSkillLetter(letter) {
+        switch(letter) {
+            case "": return "U";
+            case "U": case "T": case "E": case "M": case "L":
+                return letter;
+            case "u": case "t": case "e": case "m": case "l":
+                return letter.toUpperCase();
+            default: return "U";
         }
+        return "U";
     }
 
+    /**
+     * Get all tokens listed as selected on an input message.
+     * @param selected The selected component of the input message.
+     * @returns {Roll20Object[]} The list of selected tokens.
+     */
     selectedTokens(selected) {
-        let realObjs = _.map(selected, (x) => getObj(x._type, x._id));
-        let tokens = _.filter(realObjs, (x) => (x.get("_subtype") === "token"));
+        let realObjs = selected.map((x) => getObj(x._type, x._id));
+        let tokens = realObjs.filter((x) => (x.get("_subtype") === "token"));
         return tokens;
     }
 
+    /**
+     * Canonize a name by removing spaces and converting to lower case.
+     * @param {!string} name The input name.
+     * @returns {!string} The standardised name.
+     */
     abbreviate(name) {
         return name.replace(/ /g, "").toLowerCase();
     }
 
+    /**
+     * Convert a dictionary to a string that produces a roll20 standard template showing members of that dict.
+     * @param {string} title
+     * @param {Object.<string,(string|number)>} dict The data to be included in the template.
+     * @returns {string} The template string.
+     */
     dictToTemplate(title, dict) {
         let out = "&{template:default} {{name=" + title + "}} ";
         for (let key in dict) {
@@ -43,6 +95,11 @@ class Pathfinder2Utils {
         return out;
     }
 
+    /**
+     * Get the character a particular token represents.
+     * @param {!Roll20Object} token The token.
+     * @returns {?Roll20Object} The represented character, or null if no character represented.
+     */
     getCharForToken(token) {
         if (token.get("represents") === "") {
             return null;
@@ -52,48 +109,67 @@ class Pathfinder2Utils {
         return char;
     }
 
+
+    /**
+     * Get the name for a token, from its character or itself, or else an unknown placeholder.
+     * @param {!Roll20Object} token The token.
+     * @returns {!string} The name for the token.
+     */
     getTokenName(token) {
         let char = this.getCharForToken(token);
-        if (char !== null) return char.get("name");
-        if (token.get("name") !== "") return token.get("name");
+        if (char !== null) {
+            let charName = char.get("name");
+            if (!this.isAbsentString(charName)) return charName;
+        }
+        if (!this.isAbsentString(token.get("name"))) return token.get("name");
         return "(Unknown)";
     }
 
+    /**
+     * Get all tokens on the active player page.
+     * @returns {!Roll20Object[]} The list of all tokens.
+     */
     getPageTokens() {
         let curPage = Campaign().get("playerpageid");
         let tokens = filterObjs(x => ((x.get("_subtype") === "token") && (x.get("_pageid") === curPage)));
         return tokens;
     }
 
+    /**
+     * Returns true if the token is controlled by someone other than the GM.
+     * @param {!Roll20Object} token The token
+     * @returns {!boolean} True the token represents a character controlled by a non-GM.
+     */
+    tokenIsPC(token) {
+        let char = this.getCharForToken(token);
+        if (char === null) return false;
+        return (char.get("controlledby").some(x => !playerIsGM(x)));
+    }
+
+
+    /**
+     * Find the tokens referred to by a fragment of a target specifier.
+     * @param {!String} specifier The specifier
+     * @returns {!Roll20Object[]} The tokens it likely refers to.
+     */
     findTargetToken(specifier) {
         let canonSpec = this.abbreviate(specifier);
         let tokens = this.getPageTokens();
         let matches = [];
         for (let token of tokens) {
-            let char = this.getCharForToken(token);
-            if (char !== null) {
-                if (canonSpec === "pcs") {
-                    if (_.some(char.get("controlledby"),x => !playerIsGM(x))) {
-                        matches.push(token);
-                        continue;
-                    }
-                } else {
-                    if (this.abbreviate(char.get("name")).startsWith(canonSpec)) {
-                        matches.push(token);
-                        continue;
-                    }
-                }
-
-            }
-            if (token.get("name") !== "") {
-                if (this.abbreviate(token.get("name")).startsWith(canonSpec)) {
-                    matches.push(token);
-                    continue;
-                }
+            if (canonSpec === "pcs") {
+                if (this.tokenIsPC(token)) matches.push(token);
+            } else {
+                if (this.abbreviate(this.getTokenName(token)).startsWith(canonSpec)) matches.push(token);
             }
         }
         return matches;
     }
+
+    /**
+     * Reads the turn order.
+     * @returns {!*[]}
+     */
 
     getTurnOrder() {
         let strOrder = Campaign().get("turnorder");
@@ -104,11 +180,20 @@ class Pathfinder2Utils {
         }
     }
 
+    /**
+     * Rolls a d20 using the approved RNG.
+     * @returns {!Number} A random number from 1-20.
+     */
     d20() {
         return randomInteger(20);
     }
 
-
+    /**
+     * Get the named attribute value of the character represented by given token.
+     * @param {!Roll20Object} token The token.
+     * @param {string} property The name of the property.
+     * @returns {null|string|number} The property value or null if it's missing.
+     */
     getTokenAttr(token, property) {
         let char = this.getCharForToken(token);
         if (char === null) {
@@ -119,13 +204,22 @@ class Pathfinder2Utils {
     }
 
 
+    /**
+     * Carries out the named PF2 ability. This is the "ability" command.
+     * @param {string} abilityString The user specification of the ability.
+     * @param {string} freeSkill The user specification of the skill to be used for free skill abilities.
+     * @param {Roll20Object[]} targets The list of targets.
+     */
     doAbility(abilityString, freeSkill, targets) {
+        // Find the ability in the ability list
         let abspec = this.abbreviate(abilityString);
-        let ability = _.find(this.abilities, x => this.abbreviate(x.name).startsWith(abspec));
+        let ability = this.abilities.find(x => this.abbreviate(x.name).startsWith(abspec));
         if (ability === undefined) {
             this.send("Unknown ability, " + abilityString);
             return;
         }
+        // If it's a free skill ability, user must specify the skill; otherwise, use the one from the ability
+        // list
         let wasFreeSkill = false;
         let skill = "";
         if (ability.skill === "") {
@@ -138,42 +232,51 @@ class Pathfinder2Utils {
         } else {
             skill = ability.skill;
         }
+        // Check for all targets..
         let results = {};
-
         let skillreq = this.skillOrdinal(ability.reqprof);
-
         for (let target of targets) {
             let char = this.getCharForToken(target);
             let name = this.getTokenName(target);
-            if (char === null) {
+            if (char === null) {    // Target doesn't have a character sheet
                 results[name] = "(No sheet)";
                 continue;
             }
+            // Get skill proficiency level to check proficiency prerequisite
             let skillLevel = this.getTokenAttr(target, skill + "_proficiency_display");
             if (skillLevel === undefined) {
                 results[name] = "(Not on sheet)";
                 continue;
             }
             if (this.skillOrdinal(skillLevel) < skillreq) {
-                results[name] = "(Not qualified - " + skillLevel + ")";
+                results[name] = "(Not qualified - " + this.standardiseSkillLetter(skillLevel) + ")";
                 continue;
             }
+            // All ok, do the roll
             let modifier = this.getTokenAttr(target, skill);
             let numProp = parseInt(modifier);
             if (isNaN(numProp)) {
                 results[name] = "(Invalid)";
             } else {
                 let roll = this.d20();
-                let out = roll + " + " + modifier + " = " + (roll + numProp) + " (" + skillLevel + ")";
-                if (roll === 20) out += " (Critical)";
-                if (roll === 1) out += " (Fumble)";
+                let out = roll + " + " + modifier + " = [[" + (roll + numProp);
+                if (roll === 20) out += "+d0cs0";
+                if (roll === 1) out += "+d0cs1cf0";
+                out += "]] (" + this.standardiseSkillLetter(skillLevel) + ")";
+
                 results[name] = out;
             }
         }
         let header = ability.name;
         if (wasFreeSkill) header = header + " (" + freeSkill + ")";
 
-        this.send(this.dictToTemplate(header, results));
+        if (ability.tags.includes("Secret")) {
+            this.send("(Rolled in secret.)");
+            this.send("/w gm " + this.dictToTemplate(header, results));
+        } else {
+            this.send(this.dictToTemplate(header, results));
+
+        }
         this.send(this.dictToTemplate(header, {
             "Critical": ability.crit, "Success": ability.hit,
             "Fail": ability.miss, "Fumble": ability.fumble
@@ -181,8 +284,11 @@ class Pathfinder2Utils {
     }
 
 
-
-
+    /**
+     * Fetches a property value. This corresponds to the "get" command.
+     * @param {string} property The user specification of the property name.
+     * @param {Roll20Object[]} targets The target list.
+     */
     getProperty(property, targets) {
         let results = {};
         for (let target of targets) {
@@ -190,7 +296,7 @@ class Pathfinder2Utils {
             let propertyValue = this.getTokenAttr(target, property);
             let name = this.getTokenName(target);
 
-            if (propertyValue === null) {
+            if (propertyValue == null) {
                 results[name] = "(No sheet)";
             } else {
                 results[name] = propertyValue;
@@ -214,9 +320,11 @@ class Pathfinder2Utils {
                     results[name] = "(Invalid)";
                 } else {
                     let roll = this.d20();
-                    let out = roll + " + " + propertyValue + " = " + (roll+propertyValue);
-                    if (roll == 20) out += " (Critical)";
-                    if (roll == 1) out += " (Fumble)";
+                    let out = roll + " + " + propertyValue + " = [[" + (roll+propertyValue);
+                    // Fudges to make rolled 20 and 1s have crit failure/success colouring in output
+                    if (roll === 20) out += "+d0cs0";
+                    if (roll === 1) out += "+d0cs1cf0";
+                    out = out + "]]";
                     results[name] = out;
                 }
             }
@@ -266,12 +374,14 @@ class Pathfinder2Utils {
         for (let token of allTokens) {
             let char = this.getCharForToken(token);
             if (char === null) continue;
-            if (_.some(char.get("controlledby"), x => x === msg.playerid)) {
+            if (char.get("controlledby").some(x => x === msg.playerid)) {
                 possTokens = possTokens.push(token);
             }
         }
         return possTokens;
     }
+
+
 
     message(msg) {
         if (msg.type === "api") {
@@ -293,6 +403,7 @@ class Pathfinder2Utils {
                     this.send("No targets found.");
                     return;
                 }
+
 
                 if (command === "ability") {
                     this.doAbility(parts[firstParam], parts[firstParam+1], targets);
@@ -610,7 +721,203 @@ class Pathfinder2Utils {
             crit: "The target obeys, then becomes unfriendly but is too scared to retaliate.",
             hit: "The target obeys, then becomes unfriendly and may act against you.",
             miss: "The target refuses and becomes unfriendly.",
-            fumble: "The target refuses, becomes hostile, and can't be coerced again for a week."
+            fumble: "The target refuses, becomes hostile, and you can't coerce them again for a week."
+        }, {
+            name: "Demoralize",
+            tags: ["Auditory", "Concentrate", "Emotion", "Mental"],
+            skill: "intimidation",
+            action: 1,
+            reqprof: "U",
+            crit: "The target is frightened 2. You can't demoralize them again for 10 minutes.",
+            hit: "The target is frightened 1. You can't demoralize them again for 10 minutes.",
+            miss: "The target isn't frightened. You can't demoralize them again for 10 minutes.",
+            fumble: "As failure."
+        }, {
+            name: "Stabilize",
+            tags: ["Manipulate"],
+            skill: "medicine",
+            action: 2,
+            reqprof: "U",
+            crit: "As success.",
+            hit: "The target loses the dying condition.",
+            miss: "The target's dying value increases by 1.",
+            fumble: "As failure."
+        }, {
+            name: "Stop Bleeding",
+            tags: ["Manipulate"],
+            skill: "medicine",
+            action: 2,
+            reqprof: "U",
+            crit: "As success.",
+            hit: "The target attempts a flat check to end the bleeding.",
+            miss: "The target immediately takes their persistent bleed damage.",
+            fumble: "As failure."
+        }, {
+            name: "Treat Disease",
+            tags: ["Downtime","Manipulate"],
+            skill: "medicine",
+            reqprof: "T",
+            crit: "The target gets +4c to their next save against the disease.",
+            hit: "The target gets +2c to their next save against the disease.",
+            miss: "The target gets no benefit.",
+            fumble: "The target gets -2c to their next save against the disease."
+        }, {
+            name: "Treat Poison",
+            tags: ["Manipulate"],
+            skill: "medicine",
+            action: 1,
+            reqprof: "T",
+            crit: "The target gets +4c to their next save against the poison.",
+            hit: "The target gets +2c to their next save against the poison.",
+            miss: "The target gets no benefit.",
+            fumble: "The target gets -2c to their next save against the poison."
+        }, {
+            name: "Treat Wounds",
+            tags: ["Exploration","Healing","Manipulate"],
+            skill: "medicine",
+            reqprof: "T",
+            crit: "The target heals [[4d8]] + difficulty bonus and is no longer wounded.",
+            hit: "The target heals [[2d8]] + difficulty bonus and is no longer wounded.",
+            miss: "The target is not healed.",
+            fumble: "The target takes [[d8]] damage."
+        }, {
+            name: "Command an Animal",
+            tags: ["Auditory", "Concentrate"],
+            skill: "nature",
+            reqprof: "U",
+            action: 1,
+            crit: "As success.",
+            hit: "The animal does what you ask.",
+            miss: "The animal does nothing.",
+            fumble: "The animal misbehaves."
+        }, {
+            name: "Perform",
+            tags: ["Concentrate"],
+            skill: "performance",
+            reqprof: "U",
+            action: 1,
+            crit: "Your performance is impressive.",
+            hit: "Your performance is appreciable.",
+            miss: "Your performance is unsuccessful.",
+            fumble: "Your performance is degrading."
+        }, {
+            name: "Create Forgery",
+            tags: ["Downtime","Secret"],
+            skill: "society",
+            reqprof: "T",
+            crit: "As success.",
+            hit: "The observer does not detect the forgery.",
+            miss: "The observer detects the forgery.",
+            fumble: "As failure."
+        }, {
+            name: "Conceal an Object",
+            tags: ["Manipulate","Secret"],
+            skill: "stealth",
+            reqprof: "U",
+            action: 1,
+            crit: "As success.",
+            hit: "Observers succeeded against do not casually notice the object.",
+            miss: "Observers succeeded against notice the object.",
+            fumble: "As failure."
+        }, {
+            name: "Hide",
+            tags: ["Secret"],
+            skill: "stealth",
+            reqprof: "U",
+            action: 1,
+            crit: "As success.",
+            hit: "You become Hidden instead of Observed.",
+            miss: "You remain Observed.",
+            fumble: "As failure."
+        }, {
+            name: "Sneak",
+            tags: ["Move", "Secret"],
+            skill: "stealth",
+            reqprof: "U",
+            action: 1,
+            crit: "As success.",
+            hit: "You remained undetected during your move.",
+            miss: "You become Hidden during your move.",
+            fumble: "If you can be detected, you're observed during your move. Otherwise, as failure."
+        }, {
+            name: "Sense Direction",
+            tags: ["Exploration", "Secret"],
+            skill: "survival",
+            reqprof: "U",
+            crit: "You know where you are and exactly where cardinal directions are.",
+            hit: "You don't get lost and have a sense of the cardinal directions.",
+            miss: "You can't work anything out.",
+            fumble: "As failure."
+        }, {
+            name: "Track",
+            tags: ["Concentrate", "Exploration", "Move"],
+            skill: "survival",
+            reqprof: "T",
+            action: 1,
+            crit: "As success.",
+            hit: "You successfully find or follow the trail.",
+            miss: "You lose the trail for 1 hour.",
+            fumble: "You lose the trail for 24 hours."
+        }, {
+            name: "Palm an Object",
+            tags: ["Manipulate"],
+            skill: "thievery",
+            reqprof: "U",
+            action: 1,
+            crit: "As success.",
+            hit: "You're not noticed palming the object.",
+            miss: "You're noticed palming the object",
+            fumble: "As failure."
+        }, {
+            name: "Steal",
+            tags: ["Manipulate"],
+            skill: "thievery",
+            reqprof: "U",
+            action: 1,
+            crit: "As success.",
+            hit: "You take the object and aren't noticed.",
+            miss: "You fail to take the object, or are noticed taking it.",
+            fumble: "As failure."
+        }, {
+            name: "Disable a Device",
+            tags: ["Manipulate"],
+            skill: "thievery",
+            reqprof: "T",
+            action: 2,
+            crit: "You disable the device with no trace of doing so, or earn 2 successes.",
+            hit: "You disable the device, or earn 1 success.",
+            miss: "You don't disable the device.",
+            fumble: "You trigger the device."
+        }, {
+            name: "Pick a Lock",
+            tags: ["Manipulate"],
+            skill: "thievery",
+            reqprof: "T",
+            action: 2,
+            crit: "You unlock the lock with no trace of tampering, or earn 2 successes.",
+            hit: "You unlock the lock, or earn 1 success.",
+            miss: "You don't unlock the lock.",
+            fumble: "You break your thieves' tools."
+        }, {
+            name: "Seek",
+            tags: ["Concentrate","Secret"],
+            skill: "perception",
+            reqprof: "U",
+            action: 1,
+            crit: "A creature becomes observed. You know where an object is.",
+            hit: "An undetected creature becomes hidden, a hidden creature becomes observed. You get a clue as to where an object is.",
+            miss: "You don't detect anything.",
+            fumble: "As failure.",
+        }, {
+            name: "Sense Motive",
+            tags: ["Concentrate", "Secret"],
+            skill: "perception",
+            reqprof: "U",
+            action: 1,
+            crit: "You know the creature's true intentions, and if magic is affecting it.",
+            hit: "You know if the creature is behaving normally or not.",
+            miss: "You believe they're behaving normally and not being deceptive.",
+            fumble: "You get the wrong idea about the their intentions."
         }
         ];
 
