@@ -34,58 +34,58 @@ After the target specification (if there is one), should come the command follow
 
 Most of the abilities from the skills section are included, plus the two "standard" abilities which require skill rolls (*Sense Motive* and *Seek*). Note that abilities that don't require rolls can't be usefully managed and so are not included. This includes *Cover Tracks* which has no actual roll in the book. *Strike* and other attacks are also not included due to their significant modifier stacks. The two different versions of *Perform First Aid* are treated as two different abilities named *Stabilize* and *Stop Bleeding*.
 
-| Ability | Note |
-| -- | -- |
-| Balance |
-| Borrow an Arcane Spell | |
-| Climb | | 
-| Coerce | |
-| Command an Animal | |
-| Conceal an Object | Secret | 
-| Craft | |
-| Create a Diversion | |
-| Create Forgery | Secret |
-| Decipher Writing | Secret, must specify skill |
-| Demoralize | |
-| Disarm | (an opponent, not a trap) |
-| Disable Device | |
-| Earn Income | Must specify skill |
-| Feint | | 
-| Force Open | | 
-| Gather Information | |
-| Grapple | | 
-| Hide | Secret | 
-| High Jump | | 
-| Identify Alchemy | Secret |
-| Identify Magic | Secret, must specify skill |
-| Impersonate | Secret |
-| Learn A Spell | Must specify skill |
-| Lie | Secret |
-| Long Jump | |
-| Maneuver in Flight | |
-| Palm an Object | |
-| Perform | |
-| Pick a Lock | | 
-| Recall Knowledge | Secret, must specify skill |
-| Repair | | 
-| Request | |
-| Seek | Secret |
-| Sense Direction | Secret |
-| Sense Motive | Secret |
-| Shove | |
-| Sneak | Secret |
-| Squeeze | |
-| Stabilize | |
-| Steal | |
-| Stop Bleeding | |
-| Subsist | Must specify skill |
-| Swim | |
-| Track | | 
-| Treat Disease | |
-| Treat Poison | |
-| Treat Wounds | |
-| Trip | | 
-| Tumble Through | | 
+| Ability | Shortest Abbreviation | Note |
+| -- | -- | -- |
+| Balance | `ba` | |
+| Borrow an Arcane Spell | `bo` | |
+| Climb | `cl` | | 
+| Coerce | `coe` | |
+| Command an Animal | `com` | |
+| Conceal an Object | `con` | Secret | 
+| Craft | `cra` | |
+| Create a Diversion | `createa` |
+| Create Forgery | `createf` | Secret |
+| Decipher Writing | `dec` | Secret, must specify skill |
+| Demoralize | `dem` | |
+| Disarm | `disar` | (an opponent, not a trap) |
+| Disable Device | `disab` | |
+| Earn Income | `e` | Must specify skill |
+| Feint | `fe` | | 
+| Force Open | `fo` | | 
+| Gather Information | `ga` | |
+| Grapple | `gr` | | 
+| Hide | `hid` | Secret | 
+| High Jump | `hig` | | 
+| Identify Alchemy | `identifya` | Secret |
+| Identify Magic | `identifym` | Secret, must specify skill |
+| Impersonate | `im` | Secret |
+| Learn A Spell | `le` | Must specify skill |
+| Lie | `li` | Secret |
+| Long Jump | `lo` | |
+| Maneuver in Flight | `m` | |
+| Palm an Object | `pa` | |
+| Perform | `pe` | |
+| Pick a Lock | `pi` | | 
+| Recall Knowledge | `rec` | Secret, must specify skill |
+| Repair | `rep` | | 
+| Request | `req` | |
+| Seek | `see` | Secret |
+| Sense Direction | `sensed` | Secret |
+| Sense Motive | `sensem` | Secret |
+| Shove | `sh` | |
+| Sneak | `sn` | Secret |
+| Squeeze | `sq` | |
+| Stabilize | `sta` | |
+| Steal | `ste` | |
+| Stop Bleeding | `sto` | |
+| Subsist | `su` | Must specify skill |
+| Swim | `sw` | |
+| Track | `tra` | | 
+| Treat Disease | `treatd` | |
+| Treat Poison | `treatp` | |
+| Treat Wounds | `treatw` | |
+| Trip | `tri` | | 
+| Tumble Through | `tu` | | 
 
 
 
