@@ -9,6 +9,9 @@ To use, currently you must cut and paste the entire `script.js` file into a new 
 
 All commands start with `!pf`.
 
+Starting with `!pfs` instead will send the result only to the executing player and the GM. This is not necessary for Secret abilities, which 
+are automatically sent only to the GM.
+
 To choose the character(s) or token(s) affected by the command, the following rules are used:
 
 * You can manually specify a target by placing an `@` after the `!pf` giving an initial part of the character name in lower case with spaces removed. For example, a character named *Ed Goblin* would be targeted by `!pf @edgoblin` or just `!pf @edgo`. Tokens that don't represent characters are matched based on their token name.
@@ -19,9 +22,10 @@ To choose the character(s) or token(s) affected by the command, the following ru
 
 After the target specification (if there is one), should come the command followed by parameters separated by spaces. The available commands are as follows:
 
-* `get <item>` reads the given number from the character sheet. Eg, `!pf @pcs get stealth` will display the Stealth values for all PCs. This can be used for any property on the character sheet.
+* `get <item>` reads the given number from the character sheet. Eg, `!pf @pcs get stealth` will display the Stealth values for all PCs. This can be used for any stat (reading the stat modifier, not the raw score), skill, perception, save, AC or level. The name of the property can be abbreviated as with ability names.
 * `best <item>` finds the highest number in listed character sheets and reports who has it. Eg, `!pf @pcs best perception` will find the PC with the best perception and print their score.
 * `roll <item>` acts like `get` but adds a d20 roll to the given values.
+* `rollinit <item>` acts like `roll` but also adds the initiative modifier to the given skill and sends the result(s) to the turn tracker, keeping it in descending order. If `item` is omitted, `perception` is the default.
 * `ability <ability> <skill>` uses one of the standard Abilities from the Pathfinder 2 core rules. The ability is named in the same way as a target character - the start of the name in lower case, with no spaces.  This will roll the appropriate skill on the target(s), send the roll to the player or the GM if appropriate (the GM only if the ability has the Secret tag), and also print out a summary table of the effects of hitting different success thresholds. If the ability is one where different skills can be specified, the skill to use is specified as the second parameter. For example, if Ed Goblin wants to sneak, you can enter `!pf @edgo ability sneak`. If he's trying to remember a spell, you can enter `!pf @edgo ability recall arcana`.
 
 

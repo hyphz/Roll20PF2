@@ -12,6 +12,20 @@ class Pathfinder2Utils {
         sendChat("PF2", msg);
     }
 
+    nino(value, func) {
+        if (value === null) return null;
+        if (value === undefined) return undefined;
+        return func(value);
+    }
+
+    ninos(value, funcs) {
+        let v = value;
+        for (let func of funcs) {
+            v = this.nino(v, func);
+        }
+        return v;
+    }
+
     /**
      * Checks if a string parameter is effectively absent via being null or blank.
      * @param str
@@ -181,6 +195,18 @@ class Pathfinder2Utils {
         }
     }
 
+
+    updateTurnOrder(token, newOrder) {
+        let order = this.getTurnOrder();
+        order = _.reject(order, x => x.id === token.get("_id"));
+        let pos=0;
+        for (pos=0; pos<order.length; pos++) {
+            if (parseInt(order[pos].pr) < newOrder) break;
+        }
+        order.splice(pos, 0, {"id": token.get("_id"), "pr": newOrder, "custom": ""});
+        Campaign().set("turnorder", JSON.stringify(order));
+    }
+
     /**
      * Rolls a d20 using the approved RNG.
      * @returns {!Number} A random number from 1-20.
@@ -204,6 +230,15 @@ class Pathfinder2Utils {
         return result;
     }
 
+    getNamedField(strname) {
+        let shoname = this.abbreviate(strname);
+        return this.fields.find(x => x.name.startsWith(shoname));
+    }
+
+    namedFieldToAttrName(strname) {
+        let field = this.getNamedField(strname);
+        return field.field;
+    }
 
     /**
      * Carries out the named PF2 ability. This is the "ability" command.
@@ -216,8 +251,7 @@ class Pathfinder2Utils {
         let abspec = this.abbreviate(abilityString);
         let ability = this.abilities.find(x => this.abbreviate(x.name).startsWith(abspec));
         if (ability === undefined) {
-            this.send("Unknown ability, " + abilityString);
-            return;
+            return ("Unknown ability, " + abilityString);
         }
         // If it's a free skill ability, user must specify the skill; otherwise, use the one from the ability
         // list
@@ -225,8 +259,7 @@ class Pathfinder2Utils {
         let skill = "";
         if (ability.skill === "") {
             if (freeSkill === undefined) {
-                this.send(ability.name + " is a free skill ability. Please specify the skill to use.");
-                return;
+                return (ability.name + " is a free skill ability. Please specify the skill to use.");
             }
             wasFreeSkill = true;
             skill = freeSkill;
@@ -271,17 +304,18 @@ class Pathfinder2Utils {
         let header = ability.name;
         if (wasFreeSkill) header = header + " (" + freeSkill + ")";
 
+        let answer = "";
         if (ability.tags.includes("Secret")) {
-            this.send("(Rolled in secret.)");
+            answer = answer + "(Rolled in secret.)";
             this.send("/w gm " + this.dictToTemplate(header, results));
         } else {
-            this.send(this.dictToTemplate(header, results));
-
+            answer = answer + this.dictToTemplate(header, results);
         }
-        this.send(this.dictToTemplate(header, {
+        answer = answer + (this.dictToTemplate(header, {
             "Critical": ability.crit, "Success": ability.hit,
             "Fail": ability.miss, "Fumble": ability.fumble
         }));
+        return answer;
     }
 
 
@@ -292,9 +326,13 @@ class Pathfinder2Utils {
      */
     getProperty(property, targets) {
         let results = {};
+        let attr = this.getNamedField(property);
+        if (attr === undefined) {
+            return ("Unknown character property, " + property);
+        }
         for (let target of targets) {
             let char = this.getCharForToken(target);
-            let propertyValue = this.getTokenAttr(target, property);
+            let propertyValue = this.getTokenAttr(target, attr.field);
             let name = this.getTokenName(target);
 
             if (propertyValue == null) {
@@ -303,14 +341,20 @@ class Pathfinder2Utils {
                 results[name] = propertyValue;
             }
         }
-        this.send(this.dictToTemplate("Get " + property, results));
+        return (this.dictToTemplate("Get " + attr.name, results));
     }
 
-    rollProperty(property, targets) {
+    rollProperty(property, targets, isInit) {
         let results = {};
+        let attr = this.getNamedField(property);
+        if (attr === undefined) {
+            return ("Unknown character property, " + property);
+        }
         for (let target of targets) {
             let char = this.getCharForToken(target);
-            let propertyValue = this.getTokenAttr(target, property);
+            let propertyValue = this.getTokenAttr(target, attr.field);
+            let initMod;
+            if (isInit) initMod = this.getTokenAttr(target, "initiative_modifier");
             let name = this.getTokenName(target);
 
             if (propertyValue === null) {
@@ -321,7 +365,19 @@ class Pathfinder2Utils {
                     results[name] = "(Invalid)";
                 } else {
                     let roll = this.d20();
-                    let out = roll + " + " + propertyValue + " = [[" + (roll+propertyValue);
+                    let out = roll + " + " + propertyValue;
+                    if (isInit) {
+                        let numInit = parseInt(initMod);
+                        if (isNaN(numInit)) numInit = 0;
+                        if (numInit === 0) {
+                            out = out + " = [[" + (roll+propertyValue);
+                        } else {
+                            out = out + " + " + numInit + " = [[" + (roll+propertyValue+numInit);
+                        }
+                        this.updateTurnOrder(target, roll+propertyValue+numInit);
+                    } else {
+                      out = out + " = [[" + (roll+propertyValue);
+                    }
                     // Fudges to make rolled 20 and 1s have crit failure/success colouring in output
                     if (roll === 20) out += "+d0cs0";
                     if (roll === 1) out += "+d0cs1cf0";
@@ -330,15 +386,23 @@ class Pathfinder2Utils {
                 }
             }
         }
-        this.send(this.dictToTemplate("Roll " + property, results));
+        let header = "Roll " + attr.name;
+        if (isInit) header += " (Initiative)";
+
+
+        return (this.dictToTemplate(header, results));
     }
 
 
     bestProperty(property, targets) {
         let bestName = "";
         let bestValue = -9999;
+        let attr = this.getNamedField(property);
+        if (attr === undefined) {
+            return ("Unknown character property, " + property);
+        }
         for (let target of targets) {
-            let value = this.getTokenAttr(target, property);
+            let value = this.getTokenAttr(target, attr.field);
             if (value === null) continue;
             if (value > bestValue) {
                 bestValue = value;
@@ -346,11 +410,11 @@ class Pathfinder2Utils {
             }
         }
         if (bestValue === -9999) {
-            this.send("No best " + property + " found.");
+            return ("No best " + property + " found.");
         } else {
             let results = {};
             results[bestName] = bestValue;
-            this.send(this.dictToTemplate("Best " + property, results));
+            return (this.dictToTemplate("Best " + attr.name, results));
 
         }
     }
@@ -383,11 +447,16 @@ class Pathfinder2Utils {
     }
 
 
-
     message(msg) {
         if (msg.type === "api") {
             if (msg.content.startsWith("!pf")) {
                 let allParts = msg.content.split(" ");
+                let secret = false;
+                if (allParts[0] === "!pfs") {
+                    secret = true;
+                } else {
+                    if (allParts[0] !== "!pf") return;
+                }
                 let rollTags = allParts.filter(x => x.startsWith("#")).map(x => x.slice(1));
                 let parts = _.reject(allParts, x => x.startsWith("#"));
 
@@ -403,29 +472,47 @@ class Pathfinder2Utils {
                     targets = this.getInferredTargets(msg);
                 }
 
+                let response = "";
+
                 if (targets.length === 0) {
-                    this.send("No targets found.");
-                    return;
+                    response = ("No targets found.");
+                } else {
+                    switch (String(command)) {
+                        case "ability":
+                            response = this.doAbility(parts[firstParam], parts[firstParam + 1], targets);
+                            break;
+                        case "get":
+                            response = this.getProperty(parts[firstParam], targets);
+                            break;
+                        case "best":
+                            response = this.bestProperty(parts[firstParam], targets);
+                            break;
+                        case "roll":
+                            response = this.rollProperty(parts[firstParam], targets, false);
+                            break;
+                        case "rollinit":
+                            if (parts[firstParam] === undefined) {
+                                response = this.rollProperty("perception", targets, true);
+                            } else {
+                                response = this.rollProperty(parts[firstParam], targets, true);
+                            }
+                            break;
+                        default:
+                            response = "Unknown command, " + command;
+                    }
                 }
 
-
-                if (command === "ability") {
-                    this.doAbility(parts[firstParam], parts[firstParam+1], targets);
-                    return;
+                if (secret) {
+                    if (playerIsGM(msg.playerid)) {
+                        this.send("/w gm " + response);
+                    } else {
+                        this.send("/w \"" + msg.who + "\" " + response);
+                        this.send("/w gm (Triggered by " + msg.who + ")");
+                        this.send("/w gm " + response);
+                    }
+                } else {
+                    this.send(response);
                 }
-                if (command === "get") {
-                    this.getProperty(parts[firstParam], targets);
-                    return;
-                }
-                if (command === "best") {
-                    this.bestProperty(parts[firstParam], targets);
-                    return;
-                }
-                if (command === "roll") {
-                    this.rollProperty(parts[firstParam], targets);
-                    return;
-                }
-                this.send("Unknown command '" + command + "'.");
             }
         }
     }
@@ -437,6 +524,50 @@ class Pathfinder2Utils {
         if (!state.hasOwnProperty("PF2")) {
             state.PF2 = {};
         }
+
+        this.ft_stat = 1;
+        this.ft_calc = 2;
+        this.ft_skill = 3;
+        this.ft_save = 4;
+        this.st_str = 1;
+        this.st_dex = 2;
+        this.st_con = 3;
+        this.st_int = 4;
+        this.st_wis = 5;
+        this.st_cha = 6;
+
+        this.fields = [
+            { name:"strength", field: "strength_modifier", type:this.ft_stat },
+            { name:"dexterity", field: "dexterity_modifier", type:this.ft_stat },
+            { name:"constitution", field: "constitution_modifier", type:this.ft_stat },
+            { name:"intelligence", field: "intelligence_modifier", type:this.ft_stat },
+            { name:"wisdom", field: "wisdom_modifier", type:this.ft_stat },
+            { name:"charisma", field: "charisma_modifier", type:this.ft_stat },
+            { name:"hp", field: "hit_points", type:this.ft_calc },
+            { name:"acrobatics", field: "acrobatics", type:this.ft_skill, stat:this.st_dex },
+            { name:"arcana", field: "arcana", type:this.ft_skill, stat: this.st_int },
+            { name:"athletics", field: "athletics", type:this.ft_skill, stat: this.st_str },
+            { name:"crafting", field: "crafting", type:this.ft_skill, stat: this.st_int },
+            { name:"deception", field: "deception", type:this.ft_skill, stat: this.st_cha },
+            { name:"diplomacy", field: "diplomacy", type:this.ft_skill, stat: this.st_cha },
+            { name:"intimidation", field: "intimidation", type:this.ft_skill, stat: this.st_cha },
+            { name:"medicine", field: "medicine", type:this.ft_skill, stat: this.st_wis },
+            { name:"nature", field: "nature", type:this.ft_skill, stat:this.st_wis },
+            { name:"occultism", field: "occultism", type:this.ft_skill, stat: this.st_int },
+            { name:"performance", field: "performance", type:this.ft_skill, stat: this.st_cha },
+            { name:"religion", field: "religion", type:this.ft_skill, stat:this.st_wis },
+            { name:"society", field: "society", type:this.ft_skill, stat:this.st_int },
+            { name:"stealth", field: "stealth", type:this.ft_skill, stat:this.st_dex },
+            { name:"survival", field: "survival", type:this.ft_skill, stat: this.st_wis },
+            { name:"thievery", field: "thievery", type:this.ft_skill, stat: this.st_dex },
+            { name:"fortitude", field: "saving_throws_fortitude", type:this.ft_save, stat: this.st_con },
+            { name:"reflex", field: "saving_throws_reflex", type:this.ft_save, stat: this.st_dex },
+            { name:"will", field: "saving_throws_will", type:this.ft_save, stat: this.st_wis },
+            { name:"ac", field: "armor_class", type:this.ft_calc, stat: this.st_dex },
+            { name:"perception", field: "perception", type:this.ft_skill, stat: this.st_wis },
+            { name:"level", field: "level", type:this.ft_calc },
+            { name:"initiative", field: "initiative_modifier", type:this.ft_calc } ];
+
         this.abilities = [{
             name: "Decipher Writing",
             tags: ["Concentrate","Exploration","Secret"],
