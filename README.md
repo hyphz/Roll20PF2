@@ -25,9 +25,34 @@ After the target specification (if there is one), should come the command follow
 * `get <item>` reads the given number from the character sheet. Eg, `!pf @pcs get stealth` will display the Stealth values for all PCs. This can be used for any stat (reading the stat modifier, not the raw score), skill, perception, save, AC or level. The name of the property can be abbreviated as with ability names.
 * `best <item>` finds the highest number in listed character sheets and reports who has it. Eg, `!pf @pcs best perception` will find the PC with the best perception and print their score.
 * `roll <item>` acts like `get` but adds a d20 roll to the given values.
-* `rollinit <item>` acts like `roll` but also adds the initiative modifier to the given skill and sends the result(s) to the turn tracker, keeping it in descending order. If `item` is omitted, `perception` is the default.
+* `rollinit <item>` acts like `roll` but also adds the initiative modifier to the given skill. If `item` is omitted, `perception` is the default.
+* `rollinit! <item>` acts like `rollinit` but sends the result(s) to the turn tracker, keeping it in descending order. 
 * `ability <ability> <skill>` uses one of the standard Abilities from the Pathfinder 2 core rules. The ability is named in the same way as a target character - the start of the name in lower case, with no spaces.  This will roll the appropriate skill on the target(s), send the roll to the player or the GM if appropriate (the GM only if the ability has the Secret tag), and also print out a summary table of the effects of hitting different success thresholds. If the ability is one where different skills can be specified, the skill to use is specified as the second parameter. For example, if Ed Goblin wants to sneak, you can enter `!pf @edgo ability sneak`. If he's trying to remember a spell, you can enter `!pf @edgo ability recall arcana`.
 
+### Modifier tracking
+
+The script tries to keep a database of active modifiers, to prevent your game being dragged to hell by the mysterious 
+imps, known as *didjamembers*, whose names are spoken whenever a large number of modifiers are in play and a roll is 
+borderline.
+
+Each command that uses modifiers can have any number of **roll tags** appended to it as hashtags.
+
+* `mod add <name> <type> <value>` adds a modifier to the selected targets, with the given name and value. Type must be 
+`c`, `s`, `i` or `u` for Circumstance, Status, Item, or Untyped respectively. Some tags must
+also be specified to indicate what rolls are affected; only rolls with **all** the named tags are affected. For example, if all PCs have a +2 status bonus to Fortitude saves 
+against fear, you could enter `!pf @pcs mod add bravery s 2 #fortitude #fear`. If a modifier with the same name already 
+exists, it is updated instead (even if it affects different targets, it is updated to affect the 
+targets you specify)
+* `mod list` lists all modifiers in play.
+* `mod clear` clears all modifiers in play.
+* `mod del <name>` wipes out the named modifier.
+* `mod explain` calculates the total of temporary modifiers that would apply to rolls with the given tags on the given 
+target, and displays a breakdown of the modifiers involved. For example, you could find every PCs bonuses to fortitude 
+saves vs Fear with `!pf @pcs mod explain #fortitude #fear`. Note that this only counts **temporary** modifiers created 
+using `mod` commands; the PC's actual Fortitute save value is not counted.
+
+Note: these commands do not currently update the temporary modifier fields on the character sheet because there is no 
+way to allow for different combinations of tags when doing so.
 
 
 ## Known Abilities

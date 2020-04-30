@@ -344,7 +344,7 @@ class Pathfinder2Utils {
         return (this.dictToTemplate("Get " + attr.name, results));
     }
 
-    rollProperty(property, targets, isInit) {
+    rollProperty(property, targets, isInit, setInit) {
         let results = {};
         let attr = this.getNamedField(property);
         if (attr === undefined) {
@@ -374,7 +374,7 @@ class Pathfinder2Utils {
                         } else {
                             out = out + " + " + numInit + " = [[" + (roll+propertyValue+numInit);
                         }
-                        this.updateTurnOrder(target, roll+propertyValue+numInit);
+                        if (setInit) this.updateTurnOrder(target, roll+propertyValue+numInit);
                     } else {
                       out = out + " = [[" + (roll+propertyValue);
                     }
@@ -388,8 +388,6 @@ class Pathfinder2Utils {
         }
         let header = "Roll " + attr.name;
         if (isInit) header += " (Initiative)";
-
-
         return (this.dictToTemplate(header, results));
     }
 
@@ -446,6 +444,116 @@ class Pathfinder2Utils {
         return possTokens;
     }
 
+    listMods(tags) {
+        let out = "<table><tr><th>Name</th><th>Mod</th><th>Type</th></tr>";
+        for (let mod of state.PF2.modifiers) {
+            out = out + "<tr><td>" + mod.name + "</td><td>" + mod.value + "</td><td>" + mod.cat + "</td></tr>";
+            out = out + "<tr><td colspan='3'>" + mod.tags.join(", ") + "</td></tr>";
+            out = out + "<tr><td colspan='3'>" + mod.targets.map(x => this.getTokenName(getObj("graphic",x))).join(", ") + "</td></tr>";
+
+        }
+        out = out + "</table>";
+        return out;
+    }
+
+    addMod(name, cat, amount, targets, tags) {
+        if (name === undefined) return "Modifier name missing.";
+        if (cat === undefined) return "Modifier category missing.";
+        if (amount === undefined) return "Modifier value missing.";
+        let imod = parseInt(amount);
+        if (isNaN(imod)) return "Modifier value " + amount + " is not a number.";
+        if (tags.length === 0) return "Modifier must have some tags.";
+        if (!["c","i","s","u"].includes(cat)) {
+            return "Category must be (c)ircumstance, (s)tatus, (i)tem or (u)ntyped.";
+        }
+        let action = "Added ";
+        let existingIndex = state.PF2.modifiers.findIndex( x => x.name === name);
+        if (existingIndex !== -1) {
+            state.PF2.modifiers.splice(existingIndex,1);
+            action = "Updated ";
+        }
+        state.PF2.modifiers.push( { "name": name, "cat": cat, "value": amount, "tags": tags,
+            "targets": targets.map( x => x.id )} );
+        return action +"modifier " + name + ":" + amount + cat + ".";
+    }
+
+    delMod(name) {
+        if (name === undefined) return "Modifier name missing.";
+        let existingIndex = state.PF2.modifiers.findIndex(x => x.name === name);
+        if (existingIndex === -1) {
+            return "Modifier " + name + " not found.";
+        } else {
+            state.PF2.modifiers.splice(existingIndex,1);
+            return "Modifier " + name + " deleted.";
+        }
+    }
+
+    modApplies(mod, target, tags) {
+        if (!_.contains(mod.targets,target.id)) return false;
+        return _.every(mod.tags, x => _.contains(tags,x));
+    }
+
+    clearMods() {
+        state.PF2.modifiers = [];
+        return "All modifiers cleared.";
+    }
+
+    explainMods(targets, tags) {
+        let out = "";
+        let bests = {};
+        let worsts = {};
+
+        for (let target of targets) {
+            for (let mod of state.PF2.modifiers) {
+                if (this.modApplies(mod, target, tags)) {
+                    if (mod.cat !== "u") {
+                        let imod = parseInt(mod.value);
+                        if (imod >= 0) {
+                            let oldBest = bests[mod.cat];
+                            if ((oldBest === undefined) || (parseInt(oldBest.value) <= imod)) {
+                                bests[mod.cat] = mod;
+                            }
+                        } else {
+                            let oldWorst = worsts[mod.cat];
+                            if ((oldWorst === undefined) || (parseInt(oldWorst.value) >= imod)) {
+                                worsts[mod.cat] = mod;
+                            }
+                        }
+                    }
+                }
+            }
+
+            let total = 0;
+            out = out + "<table><tr><th colspan='2'>" + this.getTokenName(target) + "</th></tr>";
+            out = out + "<tr><th>Name</th><th>Mod</th></tr>";
+            for (let mod of state.PF2.modifiers) {
+                if (this.modApplies(mod, target, tags)) {
+                    out = out + "<tr>";
+                    let ok = false;
+                    let imod = parseInt(mod.value);
+                    if (mod.cat !== "u") {
+                        if (imod >= 0) {
+                            if ((mod.name !== bests[mod.cat].name)) {
+                                out = out + "<td>" + mod.name + "</td><td>" + mod.value + mod.cat +
+                                    "(overridden by " + bests[mod.cat].name + ")</td></tr>";
+                                continue;
+                            }
+                        } else {
+                            if ((mod.name !== worsts[mod.cat].name)) {
+                                out = out + "<td>" + mod.name + "</td><td>" + mod.value + mod.cat +
+                                    "(overridden by " + worsts[mod.cat].name + ")</td></tr>";
+                                continue;
+                            }
+                        }
+                    }
+                    out = out + "<td>" + mod.name + "</td><td>" + mod.value + mod.cat + "</td></tr>";
+                    total = total + imod;
+                }
+            }
+            out = out + "<tr><td>Total</td><td>" + total + "</td></tr></table><br>";
+        }
+        return out;
+    }
 
     message(msg) {
         if (msg.type === "api") {
@@ -488,13 +596,41 @@ class Pathfinder2Utils {
                             response = this.bestProperty(parts[firstParam], targets);
                             break;
                         case "roll":
-                            response = this.rollProperty(parts[firstParam], targets, false);
+                            response = this.rollProperty(parts[firstParam], targets, false, false);
                             break;
                         case "rollinit":
                             if (parts[firstParam] === undefined) {
-                                response = this.rollProperty("perception", targets, true);
+                                response = this.rollProperty("perception", targets, true, false);
                             } else {
-                                response = this.rollProperty(parts[firstParam], targets, true);
+                                response = this.rollProperty(parts[firstParam], targets, true, false);
+                            }
+                            break;
+                        case "rollinit!":
+                            if (parts[firstParam] === undefined) {
+                                response = this.rollProperty("perception", targets, true, true);
+                            } else {
+                                response = this.rollProperty(parts[firstParam], targets, true, true);
+                            }
+                            break;
+                        case "mod":
+                            switch (String(parts[firstParam])) {
+                                case "list":
+                                    response = this.listMods(rollTags);
+                                    break;
+                                case "add":
+                                    response = this.addMod(parts[firstParam+1], parts[firstParam+2], parts[firstParam+3], targets, rollTags);
+                                    break;
+                                case "del":
+                                    response = this.delMod(parts[firstParam+1]);
+                                    break;
+                                case "clear":
+                                    response = this.clearMods();
+                                    break;
+                                case "explain":
+                                    response = this.explainMods(targets, rollTags);
+                                    break;
+                                default:
+                                    response = "Unknown mod subcommand, " + parts[firstParam];
                             }
                             break;
                         default:
@@ -522,7 +658,12 @@ class Pathfinder2Utils {
         on("chat:message", (msg) => this.message(msg));
 
         if (!state.hasOwnProperty("PF2")) {
+            log("Initialized state.");
             state.PF2 = {};
+        }
+        if (!state.PF2.hasOwnProperty("modifiers")) {
+            log("Initialized modifiers.");
+            state.PF2.modifiers = [];
         }
 
         this.ft_stat = 1;
