@@ -599,6 +599,25 @@ class Pathfinder2Utils {
         return out;
     }
 
+    describeCommand(cmd) {
+        let desc = "";
+        if (cmd.cat) desc = desc + cmd.cat + " ";
+        desc = desc + cmd.cmd;
+        if (cmd.activeOption) desc = desc + "[!]";
+        for (let param of cmd.params) {
+            let effName = param.name;
+            if (param.mustInt) effName = "#" + effName;
+            if (param.default) {
+                desc = desc + " &lt;" + effName + "(" + param.default + ")&gt;";
+            } else if (param.optional) {
+                desc = desc + " [" + effName + "]";
+            } else {
+                desc = desc + " &lt;" + effName + "&gt;";
+            }
+        }
+        return desc;
+    }
+
     message(msg) {
         if (msg.type === "api") {
             if (msg.content.startsWith("!pf")) {
@@ -612,73 +631,91 @@ class Pathfinder2Utils {
                 let rollTags = allParts.filter(x => x.startsWith("#")).map(x => x.slice(1));
                 let parts = _.reject(allParts, x => x.startsWith("#"));
 
-                let command = parts[1];
                 let targets = [];
-                let firstParam = 2;
 
-                if (command.startsWith("@")) {
-                    targets = this.getSpecifiedTargets(command);
-                    command = parts[2];
-                    firstParam = 3;
-                } else {
+                let targetSpecs = parts.filter(x => x.startsWith("@"));
+                parts = _.reject(parts, x => x.startsWith("@"));
+                for (let spec of targetSpecs) {
+                    targets = targets.concat(this.getSpecifiedTargets(spec));
+                }
+                if (targets === []) {
                     targets = this.getInferredTargets(msg);
                 }
 
-                let response = "";
+                let active = false;
+                let command = parts[1];
+                if (command === undefined) {
+                    return;
+                }
+                if (command.endsWith("!")) {
+                    active = true;
+                    command = command.slice(0, -1);
+                }
+                let commandDesc = command;
+                let firstParam = 2;
+                let response;
 
-                if (targets.length === 0) {
-                    response = ("No targets found.");
-                } else {
-                    switch (String(command)) {
-                        case "ability":
-                            response = this.doAbility(parts[firstParam], parts[firstParam + 1], targets);
-                            break;
-                        case "get":
-                            response = this.getProperty(parts[firstParam], targets);
-                            break;
-                        case "best":
-                            response = this.bestProperty(parts[firstParam], targets);
-                            break;
-                        case "roll":
-                            response = this.rollProperty(parts[firstParam], targets, false, false);
-                            break;
-                        case "rollinit":
-                            if (parts[firstParam] === undefined) {
-                                response = this.rollProperty("perception", targets, true, false);
-                            } else {
-                                response = this.rollProperty(parts[firstParam], targets, true, false);
+                let commandTpl = _.find(this.commands, x => ((x.cmd === command) && (!x.cat)));
+                if (commandTpl === undefined) {
+                    let category = command;
+                    command = parts[2];
+                    if (command === undefined) {
+                        response = category + " needs a subcommand";
+                    } else {
+                        if (command.endsWith("!")) {
+                            active = true;
+                            command = command.slice(0, -1);
+                        }
+                        commandDesc = commandDesc + " " + command;
+                        firstParam = 3;
+                        let catTest = _.find(this.commands, x => ((x.cat === category)));
+                        if (catTest === undefined) {
+                            response = "Unknown command or category, " + category + ".";
+                        } else {
+                            commandTpl = _.find(this.commands, x => ((x.cmd === command) && (x.cat === category)));
+                            if (commandTpl === undefined) {
+                                response = "Unknown command, " + command + " in category " + category;
                             }
-                            break;
-                        case "rollinit!":
-                            if (parts[firstParam] === undefined) {
-                                response = this.rollProperty("perception", targets, true, true);
-                            } else {
-                                response = this.rollProperty(parts[firstParam], targets, true, true);
+                        }
+                    }
+                }
+
+
+                if (commandTpl !== undefined) {
+                    if (active && (!commandTpl.activeOption)) {
+                        response = commandDesc + " has no active option.";
+                    } else if ((targets.length === 0) && (!commandTpl.noTarget)) {
+                        response = commandDesc + " requires a target; none were found.";
+                    } else {
+                        let curParam = firstParam;
+                        let paramBlock = {};
+                        let paramsGood = true;
+                        for (let param of commandTpl.params) {
+                            let candidateParam = parts[curParam];
+                            if ((candidateParam === undefined) && (!param.optional)) {
+                                if (param.default) {
+                                    candidateParam = param.default;
+                                } else {
+                                    paramsGood = false;
+                                    break;
+                                }
                             }
-                            break;
-                        case "mod":
-                            switch (String(parts[firstParam])) {
-                                case "list":
-                                    response = this.listMods(rollTags);
+                            if (param.mustInt) {
+                                candidateParam = parseInt(candidateParam);
+                                if (isNaN(candidateParam)) {
+                                    paramsGood = false;
                                     break;
-                                case "add":
-                                    response = this.addMod(parts[firstParam+1], parts[firstParam+2], parts[firstParam+3], targets, rollTags);
-                                    break;
-                                case "del":
-                                    response = this.delMod(parts[firstParam+1]);
-                                    break;
-                                case "clear":
-                                    response = this.clearMods();
-                                    break;
-                                case "explain":
-                                    response = this.explainMods(targets, rollTags);
-                                    break;
-                                default:
-                                    response = "Unknown mod subcommand, " + parts[firstParam];
+                                }
                             }
-                            break;
-                        default:
-                            response = "Unknown command, " + command;
+                            paramBlock[param.name] = candidateParam;
+                            curParam++;
+                        }
+                        if (!paramsGood) {
+                            response = "Usage: " + this.describeCommand(commandTpl);
+                        } else {
+                            response = commandTpl.do(paramBlock, targets, rollTags, active);
+                        }
+
                     }
                 }
 
@@ -720,6 +757,42 @@ class Pathfinder2Utils {
         this.st_int = 4;
         this.st_wis = 5;
         this.st_cha = 6;
+        this.st_names = ["","strength","dexterity","constitution","intelligence","wisdom","charisma"];
+        this.level_dcs = [14, 15, 16, 18, 19, 20, 22, 23, 24, 26, 27, 28, 30, 31, 32, 34, 35, 36, 38, 39, 40, 42, 44, 46, 48, 50];
+
+
+        this.commands = [
+            {cmd: "ability", params: [{ name: "ability"}, {name: "skillchoice", optional: true}],
+             do: ((p,t,r,a) => this.doAbility(p.ability, p.skillchoice, t))},
+
+            {cmd: "get", params: [{ name: "property"}],
+             do: ((p,t,r,a) => this.getProperty(p.property,t))},
+
+            {cmd: "best", params: [{ name: "property"}],
+             do: ((p,t,r,a) => this.bestProperty(p.property,t))},
+
+            {cmd: "roll", params: [{ name: "property"}],
+             do: ((p,t,r,a) => this.rollProperty(p.property,t,false,false))},
+
+            {cmd: "rollinit", params: [{ name: "property", default: "perception"}], activeOption: true,
+             do: ((p,t,r,a) => this.rollProperty(p.property,t,true,a))},
+
+            {cat: "mod", cmd: "list", params: [], noTarget: true,
+             do: ((p,t,r,a) => this.listMods(r))},
+
+            {cat: "mod", cmd: "add", params: [{name: "name"},{name: "type"},{name: "value", mustInt: true}],
+             do: ((p,t,r,a) => this.addMod(p.name, p.type, p.value, t, r))},
+
+            {cat: "mod", cmd: "del", params: [{name: "name"}], noTarget: true,
+             do: ((p,t,r,a) => this.delMod(p.name))},
+
+            {cat: "mod", cmd: "clear", params: [], noTarget: true,
+             do: ((p,t,r,a) => this.clearMods())},
+
+            {cat: "mod", cmd: "explain", params: [],
+             do: ((p,t,r,a) => this.explainMods(t,r))}
+        ];
+
 
         this.fields = [
             { name:"strength", field: "strength_modifier", type:this.ft_stat },
