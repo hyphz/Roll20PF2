@@ -175,6 +175,10 @@ class Pathfinder2Utils {
         for (let token of tokens) {
             if (canonSpec === "pcs") {
                 if (this.tokenIsPC(token)) matches.push(token);
+            } else if (canonSpec === "npcs") {
+                if ((this.getCharForToken(token) !== null) && (!this.tokenIsPC(token))) matches.push(token);
+            } else if (canonSpec === "all") {
+                if (this.getCharForToken(token) !== null) matches.push(token);
             } else {
                 if (this.abbreviate(this.getTokenName(token)).startsWith(canonSpec)) matches.push(token);
             }
