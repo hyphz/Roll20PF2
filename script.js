@@ -1,5 +1,6 @@
 /**
  * @typedef {Object} Roll20Object
+ * @typedef {{field: string, name: string, type: number}} Field
  */
 
 class Pathfinder2Utils {
@@ -195,6 +196,12 @@ class Pathfinder2Utils {
         }
     }
 
+    /**
+     * Updates a token's value in the turn order; adding if it is not there, replacing it if it is
+     * already present; and placing it so that the list remains in descending roll order.
+     * @param {!Roll20Object} token The token object to update.
+     * @param {!number} newOrder The new turn order value.
+     */
 
     updateTurnOrder(token, newOrder) {
         let order = this.getTurnOrder();
@@ -218,7 +225,7 @@ class Pathfinder2Utils {
     /**
      * Get the named attribute value of the character represented by given token.
      * @param {!Roll20Object} token The token.
-     * @param {string} property The name of the property.
+     * @param {!string} property The name of the property.
      * @returns {null|string|number} The property value or null if it's missing.
      */
     getTokenAttr(token, property) {
@@ -230,14 +237,86 @@ class Pathfinder2Utils {
         return result;
     }
 
+    /**
+     * Get the description for the named field from the field database.
+     * @param {!string} strname
+     * @returns {?Field} The data stored about the field.
+     */
+
     getNamedField(strname) {
         let shoname = this.abbreviate(strname);
         return this.fields.find(x => x.name.startsWith(shoname));
     }
 
+    /**
+     * Get the Roll20 attribute name from an internal field name.
+     * @param {!string} strname The internal field name.
+     * @returns {?string} The Roll20 attribute name.
+     */
     namedFieldToAttrName(strname) {
         let field = this.getNamedField(strname);
         return field.field;
+    }
+
+
+    appendNumToSum(sum, number) {
+        if (number >= 0) {
+            return sum + " + " + number;
+        } else {
+            return sum + " - " + (-number);
+        }
+    }
+
+
+    /**
+     * Roll a dice and add a given number of rolls and given set of modifiers.
+     * @param target
+     * @param attributes
+     * @param modifiers
+     * @returns {{roll: number, text: string}} The roll result.
+     */
+    rollAttribute(target, attributes, modifiers) {
+        let char = this.getCharForToken(target);
+        let modString = "";
+        let ok = false;
+        let modtotal = 0;
+
+        for (let attr of attributes) {
+            let bad = false;
+            let propertyValue = this.getTokenAttr(target, attr.field);
+            if (propertyValue == null) {
+                propertyValue = 0;
+                bad = true;
+            }
+            let numProp = parseInt(propertyValue);
+            if (isNaN(numProp)) {
+                numProp = 0;
+                bad = true;
+            }
+            modString = this.appendNumToSum(modString, numProp);
+            modtotal += numProp;
+            if (!bad) ok = true;
+        }
+
+        if (!ok) {
+            return { "text": "(Invalid)", "roll": 0 };
+        }
+
+        for (let mod of modifiers) {
+            modString = this.appendNumToSum(modString, mod);
+            modtotal += mod;
+        }
+
+        let roll = this.d20();
+        modString = roll + modString;
+        let modroll = roll + modtotal;
+        modString = modString + " = [[" + modroll;
+        if (roll === 20) {
+            if (roll === 20) modString += "+d0cs0";
+            if (roll === 1) modString += "+d0cs1cf0";
+        }
+        modString = modString + "]]";
+        return { "text": modString, "roll": modroll };
     }
 
     /**
@@ -287,19 +366,8 @@ class Pathfinder2Utils {
                 continue;
             }
             // All ok, do the roll
-            let modifier = this.getTokenAttr(target, skill);
-            let numProp = parseInt(modifier);
-            if (isNaN(numProp)) {
-                results[name] = "(Invalid)";
-            } else {
-                let roll = this.d20();
-                let out = roll + " + " + modifier + " = [[" + (roll + numProp);
-                if (roll === 20) out += "+d0cs0";
-                if (roll === 1) out += "+d0cs1cf0";
-                out += "]] (" + this.standardiseSkillLetter(skillLevel) + ")";
-
-                results[name] = out;
-            }
+            let roll = this.rollAttribute(target, [this.getNamedField(skill)],[]);
+            results[name] = roll.text + " (" + this.standardiseSkillLetter(skillLevel) + ")";
         }
         let header = ability.name;
         if (wasFreeSkill) header = header + " (" + freeSkill + ")";
@@ -351,40 +419,16 @@ class Pathfinder2Utils {
             return ("Unknown character property, " + property);
         }
         for (let target of targets) {
-            let char = this.getCharForToken(target);
-            let propertyValue = this.getTokenAttr(target, attr.field);
-            let initMod;
-            if (isInit) initMod = this.getTokenAttr(target, "initiative_modifier");
             let name = this.getTokenName(target);
-
-            if (propertyValue === null) {
-                results[name] = "(No sheet)";
+            if (name === undefined) continue;
+            let roll;
+            if (isInit) {
+                roll = this.rollAttribute(target, [attr, this.getNamedField("initiative")], []);
             } else {
-                let numProp = parseInt(propertyValue);
-                if (isNaN(numProp)) {
-                    results[name] = "(Invalid)";
-                } else {
-                    let roll = this.d20();
-                    let out = roll + " + " + propertyValue;
-                    if (isInit) {
-                        let numInit = parseInt(initMod);
-                        if (isNaN(numInit)) numInit = 0;
-                        if (numInit === 0) {
-                            out = out + " = [[" + (roll+numProp);
-                        } else {
-                            out = out + " + " + numInit + " = [[" + (roll+numProp+numInit);
-                        }
-                        if (setInit) this.updateTurnOrder(target, roll+numProp+numInit);
-                    } else {
-                      out = out + " = [[" + (roll+numProp);
-                    }
-                    // Fudges to make rolled 20 and 1s have crit failure/success colouring in output
-                    if (roll === 20) out += "+d0cs0";
-                    if (roll === 1) out += "+d0cs1cf0";
-                    out = out + "]]";
-                    results[name] = out;
-                }
+                roll = this.rollAttribute(target, [attr], []);
             }
+            results[name] = roll.text;
+            if (setInit) this.updateTurnOrder(target, roll.roll);
         }
         let header = "Roll " + attr.name;
         if (isInit) header += " (Initiative)";
