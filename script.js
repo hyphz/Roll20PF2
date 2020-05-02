@@ -370,13 +370,13 @@ class Pathfinder2Utils {
                         let numInit = parseInt(initMod);
                         if (isNaN(numInit)) numInit = 0;
                         if (numInit === 0) {
-                            out = out + " = [[" + (roll+propertyValue);
+                            out = out + " = [[" + (roll+numProp);
                         } else {
-                            out = out + " + " + numInit + " = [[" + (roll+propertyValue+numInit);
+                            out = out + " + " + numInit + " = [[" + (roll+numProp+numInit);
                         }
-                        if (setInit) this.updateTurnOrder(target, roll+propertyValue+numInit);
+                        if (setInit) this.updateTurnOrder(target, roll+numProp+numInit);
                     } else {
-                      out = out + " = [[" + (roll+propertyValue);
+                      out = out + " = [[" + (roll+numProp);
                     }
                     // Fudges to make rolled 20 and 1s have crit failure/success colouring in output
                     if (roll === 20) out += "+d0cs0";
