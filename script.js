@@ -1,6 +1,7 @@
 /**
  * @typedef {Object} Roll20Object
  * @typedef {{field: string, name: string, type: number}} Field
+ * @typedef {{name: string, cat: string, value: number, tags: string[], targets: string[]}} Modifier
  */
 
 class Pathfinder2Utils {
@@ -13,6 +14,12 @@ class Pathfinder2Utils {
         sendChat("PF2", msg);
     }
 
+    /**
+     * Applies a function to a value if it's not nullish, else returns the same nullish.
+     * @param value
+     * @param func
+     * @returns {null|undefined|*}
+     */
     nino(value, func) {
         if (value === null) return null;
         if (value === undefined) return undefined;
@@ -262,13 +269,17 @@ class Pathfinder2Utils {
         return field.field;
     }
 
+    /**
+     * Takes a string representing a sum as written arithmetic and adds another number to it.
+     * @param sum The string sum.
+     * @param number The number to add.
+     * @returns {string} The new string sum.
+     */
 
     appendNumToSum(sum, number) {
-        if (number >= 0) {
-            return sum + " + " + number;
-        } else {
-            return sum + " - " + (-number);
-        }
+        if (number === 0) return sum;
+        if (number > 0) return sum + " + " + number;
+        return sum + " - " + (-number);
     }
 
 
@@ -279,41 +290,68 @@ class Pathfinder2Utils {
      * @param modifiers
      * @returns {{roll: number, text: string}} The roll result.
      */
-    rollAttribute(target, attributes, modifiers) {
+    rollAttribute(target, attributes, modifiers, tags) {
         let char = this.getCharForToken(target);
+        let impliedtags = [];
         let modString = "";
         let ok = false;
         let modtotal = 0;
 
+        /* Calculate list of implied rolltags to add to specified tags. */
+        for (let attr of attributes) {
+            /* Always include the name of each rolled attribute as an implied tag. */
+            impliedtags.push(attr.name);
+            /* If it has a governing stat, add that stat too. */
+            if (attr.stat) {
+                let tagName = this.st_names[attr.stat];
+                if (!impliedtags.includes(tagName)) impliedtags.push(tagName);
+            }
+        }
+
+        /* Calculate the total modifier for all tags and add that to specified modules. */
+        let fulltags = tags.concat(impliedtags);
+        let tagmod = this.calculateTotalMod(target, fulltags);
+        modifiers.push(tagmod);
+
+        /* Get all attributes to be rolled. */
         for (let attr of attributes) {
             let bad = false;
             let propertyValue = this.getTokenAttr(target, attr.field);
+            // Property value missing? Default to 0.
             if (propertyValue == null) {
                 propertyValue = 0;
                 bad = true;
             }
+            // Property value not a number (possibly an empty string)? Default to 0.
             let numProp = parseInt(propertyValue);
             if (isNaN(numProp)) {
                 numProp = 0;
                 bad = true;
             }
+            // Add property to total and to output sum.
             modString = this.appendNumToSum(modString, numProp);
             modtotal += numProp;
             if (!bad) ok = true;
         }
 
+        // Give up only if _all_ attributes were invalid or not found.
         if (!ok) {
             return { "text": "(Invalid)", "roll": 0 };
         }
 
+        // Add all static modifiers to sum and total.
         for (let mod of modifiers) {
             modString = this.appendNumToSum(modString, mod);
             modtotal += mod;
         }
 
+        // Roll the dice and add it to the total.
         let roll = this.d20();
         modString = roll + modString;
         let modroll = roll + modtotal;
+
+        // Add total to output string. If dice roll was 20 or 1, add a fudge to make the total value appear
+        // with critical or fumble colouring.
         modString = modString + " = [[" + modroll;
         if (roll === 20) {
             if (roll === 20) modString += "+d0cs0";
@@ -329,7 +367,7 @@ class Pathfinder2Utils {
      * @param {string} freeSkill The user specification of the skill to be used for free skill abilities.
      * @param {Roll20Object[]} targets The list of targets.
      */
-    doAbility(abilityString, freeSkill, targets) {
+    doAbility(abilityString, freeSkill, targets, tags) {
         // Find the ability in the ability list
         let abspec = this.abbreviate(abilityString);
         let ability = this.abilities.find(x => this.abbreviate(x.name).startsWith(abspec));
@@ -370,7 +408,7 @@ class Pathfinder2Utils {
                 continue;
             }
             // All ok, do the roll
-            let roll = this.rollAttribute(target, [this.getNamedField(skill)],[]);
+            let roll = this.rollAttribute(target, [this.getNamedField(skill)],[], tags);
             results[name] = roll.text + " (" + this.standardiseSkillLetter(skillLevel) + ")";
         }
         let header = ability.name;
@@ -416,7 +454,16 @@ class Pathfinder2Utils {
         return (this.dictToTemplate("Get " + attr.name, results));
     }
 
-    rollProperty(property, targets, isInit, setInit) {
+    /**
+     * Rolls a property value. This corresponds to the "roll" command.
+     * @param {string} property The property name to roll.
+     * @param {Roll20Object[]} targets The target list.
+     * @param {boolean} isInit Should initiative modifier be added?
+     * @param {boolean }setInit Should turn tracker be updated?
+     * @param {String[]} tags List of extra rolltags.
+     * @returns {string} Command response.
+     */
+    rollProperty(property, targets, isInit, setInit, tags) {
         let results = {};
         let attr = this.getNamedField(property);
         if (attr === undefined) {
@@ -427,9 +474,9 @@ class Pathfinder2Utils {
             if (name === undefined) continue;
             let roll;
             if (isInit) {
-                roll = this.rollAttribute(target, [attr, this.getNamedField("initiative")], []);
+                roll = this.rollAttribute(target, [attr, this.getNamedField("initiative")], [], tags);
             } else {
-                roll = this.rollAttribute(target, [attr], []);
+                roll = this.rollAttribute(target, [attr], [], tags);
             }
             results[name] = roll.text;
             if (setInit) this.updateTurnOrder(target, roll.roll);
@@ -439,7 +486,12 @@ class Pathfinder2Utils {
         return (this.dictToTemplate(header, results));
     }
 
-
+    /**
+     * Calculates the best value of a given property in the range. This corresponds to the "best" command.
+     * @param {string} property The property name.
+     * @param {Roll20Object[]} targets The target list.
+     * @returns {string} Command response.
+     */
     bestProperty(property, targets) {
         let bestName = "";
         let bestValue = -9999;
@@ -465,7 +517,11 @@ class Pathfinder2Utils {
         }
     }
 
-
+    /**
+     * Get the list of all targets given by a written target specifier.
+     * @param {string} spec The target specifier, including the initial @.
+     * @returns {Roll20Object[]} The list of targets found (which may be empty)
+     */
     getSpecifiedTargets(spec) {
         let targets = [];
         let targetNameList = spec.slice(1).split(",");
@@ -476,10 +532,20 @@ class Pathfinder2Utils {
         return targets;
     }
 
+    /**
+     * Get the list of targets implied by a message that didn't have a target specifier.
+     * @param msg The roll20 message object.
+     * @returns {Roll20Object[]|null|*[]}
+     */
     getInferredTargets(msg) {
+        // Were there tokens selected? If so, use those.
         let selected = this.selectedTokens(msg.selected);
         if (selected !== null) return selected;
+
+        // If the player is the GM, don't try to do control default selection.
         if (playerIsGM(msg.playerid)) return [];
+
+        // Default to all tokens we control.
         let allTokens = this.getPageTokens();
         let possTokens = null;
         for (let token of allTokens) {
@@ -492,18 +558,31 @@ class Pathfinder2Utils {
         return possTokens;
     }
 
+    /**
+     * Outputs the list of modifiers for given rolltags. This corresponds to the mod list command.
+     * @param tags The list of tags (not used?)
+     * @returns {string} Command output.
+     */
     listMods(tags) {
         let out = "<table><tr><th>Name</th><th>Mod</th><th>Type</th></tr>";
         for (let mod of state.PF2.modifiers) {
             out = out + "<tr><td>" + mod.name + "</td><td>" + mod.value + "</td><td>" + mod.cat + "</td></tr>";
             out = out + "<tr><td colspan='3'>" + mod.tags.join(", ") + "</td></tr>";
             out = out + "<tr><td colspan='3'>" + mod.targets.map(x => this.getTokenName(getObj("graphic",x))).join(", ") + "</td></tr>";
-
         }
         out = out + "</table>";
         return out;
     }
 
+    /**
+     * Adds a given modifier for a set of rolltags. This corresponds to the mod add command.
+     * @param {string} name The name for the modifier.
+     * @param {string} cat The modifier category.
+     * @param {number} amount The value of the modifier.
+     * @param {Roll20Object[]} targets The targeted tokens.
+     * @param {string[]} tags The affected rolltags.
+     * @returns {string} Command output.
+     */
     addMod(name, cat, amount, targets, tags) {
         if (name === undefined) return "Modifier name missing.";
         if (cat === undefined) return "Modifier category missing.";
@@ -525,6 +604,11 @@ class Pathfinder2Utils {
         return action +"modifier " + name + ":" + amount + cat + ".";
     }
 
+    /**
+     * Removes a named modifier. This corresponds to the mod del command.
+     * @param {string} name The name of the modifier.
+     * @returns {string} Command output.
+     */
     delMod(name) {
         if (name === undefined) return "Modifier name missing.";
         let existingIndex = state.PF2.modifiers.findIndex(x => x.name === name);
@@ -536,16 +620,74 @@ class Pathfinder2Utils {
         }
     }
 
+    /**
+     * Identifies if a given modifier applies to a given target and tag set.
+     * @param {Modifier} mod The modifier.
+     * @param {Roll20Object} target The target token.
+     * @param {string[]} tags The list of rolltags.
+     * @returns {boolean} Does the modifier apply?
+     */
     modApplies(mod, target, tags) {
         if (!_.contains(mod.targets,target.id)) return false;
         return _.every(mod.tags, x => _.contains(tags,x));
     }
 
+    /**
+     * Clears all modifiers. This corresponds to the mod clear command.
+     * @returns {string} Command output.
+     */
     clearMods() {
         state.PF2.modifiers = [];
         return "All modifiers cleared.";
     }
 
+    /**
+     * Calculate the total modifier to apply to a given target with given rolls.
+     * @param {Roll20Object} target The target token.
+     * @param {string[]} tags The list of roll tags.
+     * @returns {number} The modifier.
+     */
+    calculateTotalMod(target, tags) {
+        let bests = {};
+        let worsts = {};
+        let total = 0;
+        // Loop through all modifiers that apply.
+        for (let mod of state.PF2.modifiers) {
+            if (this.modApplies(mod, target, tags)) {
+                // If it's not untyped
+                if (mod.cat !== "u") {
+                    // Check if it is either the best bonus so far in that type, or the worst penalty.
+                    let imod = parseInt(mod.value);
+                    if (imod >= 0) {
+                        let oldBest = bests[mod.cat];
+                        if ((oldBest === undefined) || (oldBest <= imod)) {
+                            bests[mod.cat] = imod;
+                        }
+                    } else {
+                        let oldWorst = worsts[mod.cat];
+                        if ((oldWorst === undefined) || (oldWorst >= imod)) {
+                            worsts[mod.cat] = imod;
+                        }
+                    }
+                } else {
+                    // Untyped bonuses and penalties always apply.
+                    total += parseInt(mod.value);
+                }
+            }
+        }
+        // Add up the bests and worsts from each category.
+        for (let cat in bests) { total += bests[cat]; }
+        for (let cat in worsts) { total += worsts[cat]; }
+        return total;
+    }
+
+    /**
+     * Explain the modifier total for given targets and tags. This corresponds to the mod explain command and
+     * could probably be better written.
+     * @param {Roll20Object[]} targets The target tokens.
+     * @param {String[]} tags The rolltags.
+     * @returns {string} Command output.
+     */
     explainMods(targets, tags) {
         let out = "";
         let bests = {};
@@ -603,6 +745,11 @@ class Pathfinder2Utils {
         return out;
     }
 
+    /**
+     * Return the parameter specification string based on a command.
+     * @param cmd The command specifier.
+     * @returns {string} The parameter specification string.
+     */
     describeCommand(cmd) {
         let desc = "";
         if (cmd.cat) desc = desc + cmd.cat + " ";
@@ -622,9 +769,16 @@ class Pathfinder2Utils {
         return desc;
     }
 
+    /**
+     * Message event handler.
+     * @param msg The incoming message.
+     */
     message(msg) {
+        // Check it's for us.
         if (msg.type === "api") {
             if (msg.content.startsWith("!pf")) {
+                // If it starts with !pfs it's secret. If it starts with something else that isn't exactly !pf,
+                // eg !pffoo, it's not for us at all.
                 let allParts = msg.content.split(" ");
                 let secret = false;
                 if (allParts[0] === "!pfs") {
@@ -632,50 +786,74 @@ class Pathfinder2Utils {
                 } else {
                     if (allParts[0] !== "!pf") return;
                 }
+                // Chop off any word that starts with # as a rolltag.
                 let rollTags = allParts.filter(x => x.startsWith("#")).map(x => x.slice(1));
                 let parts = _.reject(allParts, x => x.startsWith("#"));
 
+                // Chop off any word that starts with @ as a target spec.
                 let targets = [];
-
                 let targetSpecs = parts.filter(x => x.startsWith("@"));
                 parts = _.reject(parts, x => x.startsWith("@"));
+
+                // Get targets based on all target specs.
                 for (let spec of targetSpecs) {
                     targets = targets.concat(this.getSpecifiedTargets(spec));
                 }
+                // If we didn't get any, try inferred targets.
                 if (targets === []) {
                     targets = this.getInferredTargets(msg);
                 }
 
+                // Get the first word that's left as the candidate command.
                 let active = false;
                 let command = parts[1];
+                // If the user for some weird reason didn't bother typing a command.
                 if (command === undefined) {
                     return;
                 }
+
+                // ! on the end of a command acts as the "active toggle". If it's there, note it and remove it.
                 if (command.endsWith("!")) {
                     active = true;
                     command = command.slice(0, -1);
                 }
-                let commandDesc = command;
+
+                let commandDesc = command; // Command description to use if there's an error
                 let firstParam = 2;
                 let response;
 
+                // Find the command template for the given command.
                 let commandTpl = _.find(this.commands, x => ((x.cmd === command) && (!x.cat)));
                 if (commandTpl === undefined) {
+                    // Not found. Maybe it's a category, and the next word is the command.
                     let category = command;
                     command = parts[2];
+
+                    // No next word. Was it at least a valid category?
                     if (command === undefined) {
-                        response = category + " needs a subcommand";
+                        let catTest = _.find(this.commands, x => ((x.cat === category)));
+                        // If no, it was an invalid command.
+                        if (catTest === undefined) {
+                            response = "Unknown command or category, " + category + ".";
+                        } else {
+                            // If yes, it's a category with no subcommand.
+                            response = category + " needs a subcommand.";
+                        }
                     } else {
+                        // Ok, the SECOND word was the command. Maybe it had the active toggle?
                         if (command.endsWith("!")) {
                             active = true;
                             command = command.slice(0, -1);
                         }
+                        // Add it to the command descriptor in case of error.
                         commandDesc = commandDesc + " " + command;
                         firstParam = 3;
+                        // Now, does that category actually exist?
                         let catTest = _.find(this.commands, x => ((x.cat === category)));
                         if (catTest === undefined) {
                             response = "Unknown command or category, " + category + ".";
                         } else {
+                            // Yes, does the command actually exist?
                             commandTpl = _.find(this.commands, x => ((x.cmd === command) && (x.cat === category)));
                             if (commandTpl === undefined) {
                                 response = "Unknown command, " + command + " in category " + category;
@@ -684,18 +862,24 @@ class Pathfinder2Utils {
                     }
                 }
 
-
+                // By now, if commandTpl is still undefined, we should have an error response loaded.
                 if (commandTpl !== undefined) {
+                    // If active option was specified check it's valid on this command.
                     if (active && (!commandTpl.activeOption)) {
                         response = commandDesc + " has no active option.";
+                    // If we found no targets check this command can handle having no targets.
                     } else if ((targets.length === 0) && (!commandTpl.noTarget)) {
                         response = commandDesc + " requires a target; none were found.";
                     } else {
+                        // Parse parameters from firstParam on.
                         let curParam = firstParam;
                         let paramBlock = {};
                         let paramsGood = true;
+                        // Match parameters in string to parameters in command template.
                         for (let param of commandTpl.params) {
                             let candidateParam = parts[curParam];
+                            // If parameter in string is missing, and non optional, use default if it's available.
+                            // Otherwise, give up parameter parsing.
                             if ((candidateParam === undefined) && (!param.optional)) {
                                 if (param.default) {
                                     candidateParam = param.default;
@@ -704,6 +888,8 @@ class Pathfinder2Utils {
                                     break;
                                 }
                             }
+                            // If parameter in template must be an int, check string can convert to an int and give
+                            // up parsing if it can't.
                             if (param.mustInt) {
                                 candidateParam = parseInt(candidateParam);
                                 if (isNaN(candidateParam)) {
@@ -711,12 +897,15 @@ class Pathfinder2Utils {
                                     break;
                                 }
                             }
+                            // Store parse result in parameter block for command.
                             paramBlock[param.name] = candidateParam;
                             curParam++;
                         }
                         if (!paramsGood) {
+                            // Errors in parameter parsing, print out command parameter description.
                             response = "Usage: " + this.describeCommand(commandTpl);
                         } else {
+                            // Actually call command's function.
                             response = commandTpl.do(paramBlock, targets, rollTags, active);
                         }
 
@@ -767,7 +956,7 @@ class Pathfinder2Utils {
 
         this.commands = [
             {cmd: "ability", params: [{ name: "ability"}, {name: "skillchoice", optional: true}],
-             do: ((p,t,r,a) => this.doAbility(p.ability, p.skillchoice, t))},
+             do: ((p,t,r,a) => this.doAbility(p.ability, p.skillchoice, t, r))},
 
             {cmd: "get", params: [{ name: "property"}],
              do: ((p,t,r,a) => this.getProperty(p.property,t))},
@@ -776,10 +965,10 @@ class Pathfinder2Utils {
              do: ((p,t,r,a) => this.bestProperty(p.property,t))},
 
             {cmd: "roll", params: [{ name: "property"}],
-             do: ((p,t,r,a) => this.rollProperty(p.property,t,false,false))},
+             do: ((p,t,r,a) => this.rollProperty(p.property,t,false,false, r))},
 
             {cmd: "rollinit", params: [{ name: "property", default: "perception"}], activeOption: true,
-             do: ((p,t,r,a) => this.rollProperty(p.property,t,true,a))},
+             do: ((p,t,r,a) => this.rollProperty(p.property,t,true,a, r))},
 
             {cat: "mod", cmd: "list", params: [], noTarget: true,
              do: ((p,t,r,a) => this.listMods(r))},
