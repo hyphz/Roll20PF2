@@ -24,7 +24,8 @@ After the target specification (if there is one), should come the command follow
 
 * `get <item>` reads the given number from the character sheet. Eg, `!pf @pcs get stealth` will display the Stealth values for all PCs. This can be used for any stat (reading the stat modifier, not the raw score), skill, perception, save, AC or level. The name of the property can be abbreviated as with ability names.
 * `best <item>` finds the highest number in listed character sheets and reports who has it. Eg, `!pf @pcs best perception` will find the PC with the best perception and print their score.
-* `roll <item>` acts like `get` but adds a d20 roll to the given values.
+* `roll <item>` acts like `get` but adds a d20 roll to the given values. The value printed will include the roll result, 
+the highest level standard DC at which it succeeds, and the highest enemy modifier it beats as a DC.
 * `rollinit <item>` acts like `roll` but also adds the initiative modifier to the given skill. If `item` is omitted, `perception` is the default.
 * `rollinit! <item>` acts like `rollinit` but sends the result(s) to the turn tracker, keeping it in descending order. 
 * `ability <ability> <skill>` uses one of the standard Abilities from the Pathfinder 2 core rules. The ability is named in the same way as a target character - the start of the name in lower case, with no spaces.  This will roll the appropriate skill on the target(s), send the roll to the player or the GM if appropriate (the GM only if the ability has the Secret tag), and also print out a summary table of the effects of hitting different success thresholds. If the ability is one where different skills can be specified, the skill to use is specified as the second parameter. For example, if Ed Goblin wants to sneak, you can enter `!pf @edgo ability sneak`. If he's trying to remember a spell, you can enter `!pf @edgo ability recall arcana`.
@@ -35,7 +36,9 @@ The script tries to keep a database of active modifiers, to prevent your game be
 imps, known as *didjamembers*, whose names are spoken whenever a large number of modifiers are in play and a roll is 
 borderline.
 
-Each command that uses modifiers can have any number of **roll tags** appended to it as hashtags.
+All of the `roll` commands above (including `rollinit` and `ability`), plus the modifers commands below,
+can have any number of **roll tags** appended to it as hashtags. `roll`, `rollinit` and `ability` automatically add the 
+name of the skill being rolled, and its governing attribute, as hashtags.
 
 * `mod add <name> <type> <value>` adds a modifier to the selected targets, with the given name and value. Type must be 
 `c`, `s`, `i` or `u` for Circumstance, Status, Item, or Untyped respectively. Some tags must
@@ -61,7 +64,7 @@ Most of the abilities from the skills section are included, plus the two "standa
 
 | Ability | Shortest Abbreviation | Note |
 | -- | -- | -- |
-| Balance | `ba` | |
+| Balance | `bal` | |
 | Borrow an Arcane Spell | `bo` | |
 | Climb | `cl` | | 
 | Coerce | `coe` | |
@@ -91,7 +94,7 @@ Most of the abilities from the skills section are included, plus the two "standa
 | Palm an Object | `pa` | |
 | Perform | `pe` | |
 | Pick a Lock | `pi` | | 
-| Recall Knowledge | `rec` | Secret, must specify skill |
+| Recall Knowledge | `reca` | Secret, must specify skill |
 | Repair | `rep` | | 
 | Request | `req` | |
 | Seek | `see` | Secret |
@@ -111,6 +114,20 @@ Most of the abilities from the skills section are included, plus the two "standa
 | Treat Wounds | `treatw` | |
 | Trip | `tri` | | 
 | Tumble Through | `tu` | | 
+
+In addition the following non-standard abilities that follow the same model are included.
+
+| Ability | Shortest Abbreviation | Note |
+| -- | -- | -- |
+| Awesome Blow | `a` | From Barbarian |
+| Battle Assessment | `bat` | From Rogue, Secret |
+| Delay Trap | `del` | From Rogue |
+| Goblin Song | `go` | From Goblin Ancestry |
+| Recognize Spell | `reco` | Skill Feat, Secret, Must specify skill |
+| Sabotage | `sa` | From Rogue |
+| Scare To Death | `sc` | Skill Feat |
+| Whirling Throw | `w` | From Monk |
+
 
 
 
