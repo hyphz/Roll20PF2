@@ -1043,55 +1043,59 @@ class Pathfinder2Utils {
             tags: ["Concentrate","Exploration","Secret"],
             skill: "",
             reqprof: "T",
-            crit: "You understand the true meaning of the text, even if it is in code.",
-            hit: "You understand the true meaning of the text, but might not have a word-for-word translation if it is in code.",
-            miss: "You don't understand the text. -2c to any further checks to decipher it.",
+            crit: "Understand text, even if in code.",
+            hit: "Understand text, only vaguely if in code.",
+            miss: "-2c to any further checks to decipher this text.",
             fumble: "You think you understood the text but are wrong."
         }, {
             name: "Earn Income",
             tags: ["Downtime"],
             skill: "",
             reqprof: "T",
-            crit: "You earn money at the task level +1.",
-            hit: "You earn money at the given task level.",
-            miss: "You earn the failure amount fo the task level.",
-            fumble: "You earn nothing and are fired."
+            dc: "Per PC's choice of task level, up to the settlement level.",
+            crit: "Earn money at the task level +1.",
+            hit: "Earn money at the given task level.",
+            miss: "Earn the failure amount fo the task level.",
+            fumble: "Earn nothing and are fired."
         }, {
             name: "Identify Magic",
             tags: ["Concentrate","Exploration","Secret"],
             skill: "",
+            dc: "Per level of the effect, +2/+5/+10 for uncommon/rare/unique or cursed.",
             reqprof: "T",
-            crit: "You learn all attributes of the magic.",
-            hit: "You get a sense of what the magic does. No retry.",
-            miss: "You can't identify the magic for 1 day.",
-            fumble: "You misidentify the magic."
+            crit: "Learn all attributes of the magic.",
+            hit: "Get a sense of what the magic does. No retry.",
+            miss: "Can't identify the magic for 1 day.",
+            fumble: "Misidentify the magic."
         }, {
             name: "Learn A Spell",
             tags: ["Concentrate","Exploration"],
             skill: "",
             reqprof: "T",
-            crit: "You spend half the materials and learn the spell.",
-            hit: "You spend the materials and learn the spell.",
-            miss: "You expend no materials and can't learn the spell until you level.",
-            fumble: "You expand half materials and can't learn the spell until you level."
+            dc: "Per level of the spell, +2/+5/+10 for uncommon/rare/unique.",
+            crit: "Spend half materials, learn spell.",
+            hit: "Spend materials, learn spell.",
+            miss: "Spend no materials, can't learn spell this level.",
+            fumble: "Spend half materials, can't learn spell this level."
         }, {
             name: "Recall Knowledge",
             tags: ["Concentrate","Secret"],
             skill: "",
             reqprof: "U",
-            crit: "You recall accurate knowledge plus extra information.",
-            hit: "You recall accurate knowledge.",
-            miss: "You don't recall the information.",
+            crit: "Recall accurate knowledge plus extra information.",
+            hit: "Recall accurate knowledge.",
+            miss: "Nil.",
             fumble: "You recall wrong information."
         }, {
             name: "Subsist",
             tags: ["Downtime"],
             skill: "",
+            dc: "Typically 15.",
             reqprof: "U",
-            crit: "You provide subsistence living for 2, or comfortable for yourself.",
-            hit: "You provide yourself a subsistence living.",
-            miss: "You are fatigued until you get food and shelter.",
-            fumble: "-2c to Subsist for 1 week and are in danger of hunger or thirst."
+            crit: "Provide subsistence for 2, or comfortable for yourself.",
+            hit: "Provide yourself subsistence.",
+            miss: "Fatigued until you get food and shelter.",
+            fumble: "-2c to Subsist for 1 week and in danger of hunger or thirst."
         }, {
             name: "Balance",
             tags: ["Move"],
@@ -1111,8 +1115,8 @@ class Pathfinder2Utils {
             skill: "acrobatics",
             reqprof: "U",
             crit: "As success.",
-            hit: "You move through an enemy's space, treating it as difficult terrain.",
-            miss: "Your movement ends and you trigger reactions.",
+            hit: "Move through target as difficult terrain.",
+            miss: "Movement ends and you trigger reactions.",
             fumble: "As failure."
         }, {
             name: "Maneuver in Flight",
@@ -1121,26 +1125,26 @@ class Pathfinder2Utils {
             skill: "acrobatics",
             reqprof: "T",
             crit: "As success.",
-            hit: "You succeed at the maneuver.",
-            miss: "The maneuver fails.",
+            hit: "Succeed at the maneuver.",
+            miss: "Nil.",
             fumble: "The maneuver fails with dire consequences."
         }, {
             name: "Squeeze",
             tags: ["Exploration", "Move"],
             skill: "acrobatics",
             reqprof: "T",
-            crit: "You squeeze at 10' per min.",
-            hit: "You squeeze at 5' per min.",
-            miss: "You can't fit through.",
-            fumble: "You get stuck. To escape, check again and get better than a fumble."
+            crit: "Squeeze at 10' per min.",
+            hit: "Squeeze at 5' per min.",
+            miss: "Nil.",
+            fumble: "Stuck. To escape, check again and get better than a fumble."
         }, {
             name: "Borrow An Arcane Spell",
             tags: ["Concentrate", "Exploration"],
             skill: "arcana",
             reqprof: "T",
             crit: "As success.",
-            hit: "You prepare the borrowed spell.",
-            miss: "You can't prepare the spell until next preparation, but keep the slot.",
+            hit: "Prepare the borrowed spell.",
+            miss: "Can't prepare the spell until next preparation, but keep the slot.",
             fumble: "As failure."
         }, {
             name: "Climb",
@@ -1148,20 +1152,20 @@ class Pathfinder2Utils {
             action: 1,
             skill: "athletics",
             reqprof: "U",
-            crit: "You climb at 5' + a quarter your speed.",
-            hit: "You climb at a quarter your speed.",
-            miss: "You don't get anywhere.",
-            fumble: "You fall, landing prone if on stable ground."
+            crit: "Climb at 5' + a quarter your speed.",
+            hit: "Climb at a quarter your speed.",
+            miss: "Nil.",
+            fumble: "Fall, landing prone if on stable ground."
         }, {
             name: "Force Open",
             tags: ["Attack"],
             action: 1,
             skill: "athletics",
             reqprof: "U",
-            crit: "You open the item without damaging it.",
-            hit: "You open the item but break it.",
-            miss: "You don't open the item.",
-            fumble: "You jam the item. -2c on future attempts to force."
+            crit: "Open the item without damaging it.",
+            hit: "Open the item but break it.",
+            miss: "Nil.",
+            fumble: "Jam the item. -2c on future attempts to force."
         }, {
             name: "Grapple",
             tags: ["Attack"],
@@ -1169,10 +1173,10 @@ class Pathfinder2Utils {
             action: 1,
             skill: "athletics",
             reqprof: "U",
-            crit: "Your opponent is restrained until end of your next turn.",
-            hit: "Your opponent is grabbed until end of your next turn.",
-            miss: "You fail to grab the opponent and release them if they were grabbed.",
-            fumble: "Your target can grab you, or force you to fall prone."
+            crit: "Target restrained until end of your next turn.",
+            hit: "Target grabbed until end of your next turn.",
+            miss: "Release target if they were grabbed.",
+            fumble: "Target can grab you or force you to fall prone."
         }, {
             name: "High Jump",
             tags: [],
@@ -1183,7 +1187,7 @@ class Pathfinder2Utils {
             crit: "Choose: 8' vertical, or 5' vertical and 10' horizontal.",
             hit: "5' vertical.",
             miss: "Leap normally.",
-            fumble: "You fall prone in your space."
+            fumble: "Fall prone in your space."
         }, {
             name: "Long Jump",
             tags: [],
@@ -1192,9 +1196,9 @@ class Pathfinder2Utils {
             skill: "athletics",
             reqprof: "U",
             crit: "As success.",
-            hit: "You leap the target distance.",
-            miss: "You leap normally.",
-            fumble: "You leap normally but fall prone when you land."
+            hit: "Leap the target distance.",
+            miss: "Leap normally.",
+            fumble: "Leap normally, fall prone when you land."
         }, {
             name: "Shove",
             tags: ["Attack"],
@@ -1202,20 +1206,20 @@ class Pathfinder2Utils {
             dc: "Enemy Fortitude DC",
             skill: "athletics",
             reqprof: "U",
-            crit: "Push the opponent up to 10' away, and can Stride after it.",
-            hit: "Push the opponent 5' back, and can Stride after it.",
-            miss: "You don't push the opponent.",
-            fumble: "You fall prone."
+            crit: "Push target <=10' away, and can Stride after it.",
+            hit: "Push target <=5' back, and can Stride after it.",
+            miss: "Nil.",
+            fumble: "Fall prone."
         }, {
             name: "Swim",
             tags: ["Move"],
             action: 1,
             skill: "athletics",
             reqprof: "U",
-            crit: "Swim 10' plus a quarter of your speed.",
-            hit: "Swim 5' plus a quarter of your speed.",
-            miss: "You don't get anywhere.",
-            fumble: "You don't get anywhere and lose a round of air."
+            crit: "Swim 10'+Speed/4.",
+            hit: "Swim 5'+Speed/4..",
+            miss: "Nil.",
+            fumble: "Lose a round of air."
         }, {
             name: "Trip",
             tags: ["Attack"],
@@ -1223,9 +1227,9 @@ class Pathfinder2Utils {
             dc: "Enemy Reflex DC",
             skill: "athletics",
             reqprof: "U",
-            crit: "The target lands prone and takes [[1d6]] bludgeoning.",
-            hit: "The target lands prone.",
-            miss: "The target isn't bothered.",
+            crit: "Target prone and takes [[1d6]] bludgeoning.",
+            hit: "Target prone.",
+            miss: "Nil.",
             fumble: "You fall prone."
         }, {
             name: "Disarm",
@@ -1234,26 +1238,27 @@ class Pathfinder2Utils {
             skill: "athletics",
             reqprof: "T",
             dc: "Enemy Reflex DC",
-            crit: "You disarm the opponent.",
-            hit: "Until their next turn, others Disarm them at +2c, and they attack or use the item at -2c.",
-            miss: "You don't do anything.",
-            fumble: "You fall prone."
+            crit: "Disarm target.",
+            hit: "Target -2c to use item and others +2c to diarm target until their next turn.",
+            miss: "Nil.",
+            fumble: "Fall prone."
         }, {
             name: "Repair",
             tags: ["Exploration", "Manipulate"],
             skill: "crafting",
             reqprof: "U",
-            crit: "You repair 10 HP plus 10 HP per proficiency rank.",
-            hit: "You repair 5 HP plus 5 HP per proficiency rank.",
-            miss: "You don't repair the item.",
+            crit: "Repair 10 HP plus 10 HP per proficiency rank.",
+            hit: "Repair 5 HP plus 5 HP per proficiency rank.",
+            miss: "Nil.",
             fumble: "You deal [[2d6]] damage to the item."
         }, {
             name: "Craft",
             tags: ["Downtime", "Manipulate"],
             skill: "crafting",
+            dc: "Per the item's level, +2/5/10 for Uncommon/Rare/Unique.",
             reqprof: "T",
-            crit: "You make the item. Extra time reduces costs based on level+1.",
-            hit: "You make the item. Extra times reduces costs based on level.",
+            crit: "Make the item. Extra time reduces costs based on level+1.",
+            hit: "Make the item. Extra times reduces costs based on level.",
             miss: "You don't make the item but you can salvage all the materials.",
             fumble: "You don't make the item but you can salvage 90% of the materials."
         }, {
@@ -1262,19 +1267,19 @@ class Pathfinder2Utils {
             skill: "crafting",
             reqprof: "T",
             crit: "As success.",
-            hit: "You identify the item and its activation.",
-            miss: "You don't identify the item.",
-            fumble: "You misidentify the item."
+            hit: "Identify the item and its activation.",
+            miss: "Nil.",
+            fumble: "Misidentify the item."
         }, {
             name: "Create a Diversion",
             tags: ["Mental"],
             action: 1,
             skill: "deception",
             reqprof: "U",
-            dc: "Perception DC of each creature",
+            dc: "Perception DC of each target",
             crit: "As success.",
-            hit: "(per creature) You are hidden.",
-            miss: "(per creature) You are not hidden and the creature knows you were trying to hide."
+            hit: "(per target) You are hidden.",
+            miss: "(per target) You are not hidden, target knows you were trying to hide."
         }, {
             name: "Impersonate",
             tags: ["Concentrate", "Exploration", "Manipulate", "Secret"],
@@ -1293,7 +1298,7 @@ class Pathfinder2Utils {
             dc: "Perception DC of each target.",
             crit: "As success.",
             hit: "Target believes you.",
-            miss: "The target doesn't believe to you and gains +4c against your lies.",
+            miss: "Target doesn't believe you and gains +4c against your lies.",
             fumble: "As failure."
         }, {
             name: "Feint",
@@ -1304,7 +1309,7 @@ class Pathfinder2Utils {
             action: 1,
             crit: "Target flat-footed against your melee until end of your next turn.",
             hit: "Target flat-footed against your next melee in the current turn.",
-            miss: "The target isn't fooled.",
+            miss: "Nil.",
             fumble: "You are flat-footed against their melee until end of your next turn."
         }, {
             name: "Gather Information",
@@ -1313,7 +1318,7 @@ class Pathfinder2Utils {
             reqprof: "U",
             crit: "As success.",
             hit: "You find information.",
-            miss: "You don't find any information.",
+            miss: "Nil.",
             fumble: "You gather wrong information."
         }, {
             name: "Make an Impression",
@@ -1323,27 +1328,28 @@ class Pathfinder2Utils {
             dc: "Target Will DC.",
             crit: "Attitude improves by 2 steps.",
             hit: "Attitude improves by 1 step.",
-            miss: "Attitude doesn't change.",
+            miss: "Nil.",
             fumble: "Attitude worsens by 1 step."
         }, {
             name: "Request",
             tags: ["Auditory", "Concentrate", "Linguistic", "Mental"],
             skill: "diplomacy",
+            dc: "Automatic failure if Unfriendly or Hostile.",
             reqprof: "U",
-            crit: "The target agrees.",
-            hit: "The target agrees with caveats.",
-            miss: "The target refuses the request.",
-            fumble: "The target refuses and their attitude worsens by 1 step."
+            crit: "Target agrees.",
+            hit: "Target agrees with caveats.",
+            miss: "Target refuses the request.",
+            fumble: "Target refuses and attitude worsens by 1 step."
         }, {
             name: "Coerce",
             tags: ["Auditory", "Concentrate", "Emotion", "Exploration", "Lingustic", "Mental"],
             skill: "intimidation",
             reqprof: "U",
             dc: "Target Will DC.",
-            crit: "The target obeys, then becomes unfriendly but is too scared to retaliate.",
-            hit: "The target obeys, then becomes unfriendly and may act against you.",
-            miss: "The target refuses and becomes unfriendly.",
-            fumble: "The target refuses, becomes hostile, and you can't coerce them again for a week."
+            crit: "Target obeys, then becomes unfriendly but is too scared to retaliate.",
+            hit: "Target obeys, then becomes unfriendly and may act against you.",
+            miss: "Target refuses and becomes unfriendly.",
+            fumble: "Target refuses, becomes hostile and immune 1 week."
         }, {
             name: "Demoralize",
             tags: ["Auditory", "Concentrate", "Emotion", "Mental"],
@@ -1351,9 +1357,9 @@ class Pathfinder2Utils {
             action: 1,
             reqprof: "U",
             dc: "Target Will DC.",
-            crit: "The target is frightened 2. You can't demoralize them again for 10 minutes.",
-            hit: "The target is frightened 1. You can't demoralize them again for 10 minutes.",
-            miss: "The target isn't frightened. You can't demoralize them again for 10 minutes.",
+            crit: "Target frightened 2 and immune 10 minutes.",
+            hit: "Target frightened 1 and immune 10 minutes.",
+            miss: "Target immune 10 minutes.",
             fumble: "As failure."
         }, {
             name: "Stabilize",
@@ -1363,8 +1369,8 @@ class Pathfinder2Utils {
             dc: "5 + the creature's recovery roll DC.",
             reqprof: "U",
             crit: "As success.",
-            hit: "The target loses the dying condition.",
-            miss: "The target's dying value increases by 1.",
+            hit: "Target loses the dying condition.",
+            miss: "Target's dying value increases by 1.",
             fumble: "As failure."
         }, {
             name: "Stop Bleeding",
@@ -1374,8 +1380,8 @@ class Pathfinder2Utils {
             action: 2,
             reqprof: "U",
             crit: "As success.",
-            hit: "The target attempts a flat check to end the bleeding.",
-            miss: "The target immediately takes their persistent bleed damage.",
+            hit: "Target attempts a flat check to end the bleeding.",
+            miss: "Target immediately takes their persistent bleed damage.",
             fumble: "As failure."
         }, {
             name: "Treat Disease",
@@ -1383,10 +1389,10 @@ class Pathfinder2Utils {
             dc: "The disease's DC.",
             skill: "medicine",
             reqprof: "T",
-            crit: "The target gets +4c to their next save against the disease.",
-            hit: "The target gets +2c to their next save against the disease.",
-            miss: "The target gets no benefit.",
-            fumble: "The target gets -2c to their next save against the disease."
+            crit: "Target gets +4c to their next save against the disease.",
+            hit: "Target gets +2c to their next save against the disease.",
+            miss: "Nil.",
+            fumble: "Target gets -2c to their next save against the disease."
         }, {
             name: "Treat Poison",
             tags: ["Manipulate"],
@@ -1394,20 +1400,20 @@ class Pathfinder2Utils {
             dc: "The poison's DC.",
             action: 1,
             reqprof: "T",
-            crit: "The target gets +4c to their next save against the poison.",
-            hit: "The target gets +2c to their next save against the poison.",
-            miss: "The target gets no benefit.",
-            fumble: "The target gets -2c to their next save against the poison."
+            crit: "Target gets +4c to their next save against the poison.",
+            hit: "Target gets +2c to their next save against the poison.",
+            miss: "Nil.",
+            fumble: "Target gets -2c to their next save against the poison."
         }, {
             name: "Treat Wounds",
             tags: ["Exploration","Healing","Manipulate"],
             skill: "medicine",
             dc: "15/20/30/40 for +0/+10/+30/+50.",
             reqprof: "T",
-            crit: "The target heals [[4d8]] + difficulty bonus and is no longer wounded.",
-            hit: "The target heals [[2d8]] + difficulty bonus and is no longer wounded.",
-            miss: "The target is not healed.",
-            fumble: "The target takes [[d8]] damage."
+            crit: "Target heals [[4d8]] + difficulty bonus and is no longer wounded.",
+            hit: "Target heals [[2d8]] + difficulty bonus and is no longer wounded.",
+            miss: "Nil.",
+            fumble: "Target takes [[d8]] damage."
         }, {
             name: "Command an Animal",
             tags: ["Auditory", "Concentrate"],
@@ -1416,9 +1422,9 @@ class Pathfinder2Utils {
             reqprof: "U",
             action: 1,
             crit: "As success.",
-            hit: "The animal does what you ask.",
-            miss: "The animal does nothing.",
-            fumble: "The animal misbehaves."
+            hit: "Animal obeys.",
+            miss: "Nil.",
+            fumble: "Animal misbehaves."
         }, {
             name: "Perform",
             tags: ["Concentrate"],
@@ -1436,8 +1442,8 @@ class Pathfinder2Utils {
             reqprof: "T",
             dc: "20 to not be obviously detectable.",
             crit: "As success.",
-            hit: "The observer does not detect the forgery.",
-            miss: "The observer detects the forgery.",
+            hit: "Observer does not detect the forgery.",
+            miss: "Observer detects the forgery.",
             fumble: "As failure."
         }, {
             name: "Conceal an Object",
@@ -1447,8 +1453,8 @@ class Pathfinder2Utils {
             dc: "Each observer's Perception DC.",
             action: 1,
             crit: "As success.",
-            hit: "Observers succeeded against do not casually notice the object.",
-            miss: "Observers succeeded against notice the object.",
+            hit: "(Per observer) Observer does not casually notice the object.",
+            miss: "(Per observer) Observer notices the object.",
             fumble: "As failure."
         }, {
             name: "Hide",
@@ -1458,8 +1464,8 @@ class Pathfinder2Utils {
             dc: "Each observer's Perception DC.",
             action: 1,
             crit: "As success.",
-            hit: "You become Hidden instead of Observed.",
-            miss: "You remain Observed.",
+            hit: "Become Hidden instead of Observed.",
+            miss: "Remain Observed.",
             fumble: "As failure."
         }, {
             name: "Sneak",
@@ -1469,28 +1475,30 @@ class Pathfinder2Utils {
             reqprof: "U",
             action: 1,
             crit: "As success.",
-            hit: "You remained undetected during your move.",
-            miss: "You become Hidden during your move.",
-            fumble: "If you can be detected, you're observed during your move. Otherwise, as failure."
+            hit: "Remained undetected during your move.",
+            miss: "Become Hidden during your move.",
+            fumble: "Become Observed during your move if possible, otherwise Hidden."
         }, {
             name: "Sense Direction",
             tags: ["Exploration", "Secret"],
             skill: "survival",
+            dc: "15/20/30/40 for wilderness/underground/featureless/surreal.",
             reqprof: "U",
-            crit: "You know where you are and exactly where cardinal directions are.",
-            hit: "You don't get lost and have a sense of the cardinal directions.",
-            miss: "You can't work anything out.",
-            fumble: "As failure."
+            crit: "Know where you are and exactly where cardinal directions are.",
+            hit: "Oon't get lost and have a sense of the cardinal directions.",
+            miss: "Nil.",
+            fumble: "Nil."
         }, {
             name: "Track",
             tags: ["Concentrate", "Exploration", "Move"],
             skill: "survival",
             reqprof: "T",
+            dc: "Enemy survival DC or enemy's proficiency at covering tracks.",
             action: 1,
             crit: "As success.",
-            hit: "You successfully find or follow the trail.",
-            miss: "You lose the trail for 1 hour.",
-            fumble: "You lose the trail for 24 hours."
+            hit: "Successfully find or follow the trail.",
+            miss: "Lose the trail for 1 hour.",
+            fumble: "Lose the trail for 24 hours."
         }, {
             name: "Palm an Object",
             tags: ["Manipulate"],
@@ -1499,8 +1507,8 @@ class Pathfinder2Utils {
             dc: "Each observer's Perception DC.",
             action: 1,
             crit: "As success.",
-            hit: "You're not noticed palming the object.",
-            miss: "You're noticed palming the object.",
+            hit: "Not noticed palming the object.",
+            miss: "Noticed palming the object.",
             fumble: "As failure."
         }, {
             name: "Steal",
@@ -1510,8 +1518,8 @@ class Pathfinder2Utils {
             action: 1,
             dc: "Each observer's Perception DC.",
             crit: "As success.",
-            hit: "You take the object and aren't noticed.",
-            miss: "You fail to take the object, or are noticed taking it.",
+            hit: "Take the object and aren't noticed.",
+            miss: "Fail to take the object, or are noticed taking it.",
             fumble: "As failure."
         }, {
             name: "Disable a Device",
@@ -1519,10 +1527,10 @@ class Pathfinder2Utils {
             skill: "thievery",
             reqprof: "T",
             action: 2,
-            crit: "You disable the device with no trace of doing so, or earn 2 successes.",
-            hit: "You disable the device, or earn 1 success.",
-            miss: "You don't disable the device.",
-            fumble: "You trigger the device."
+            crit: "Disable the device with no trace, or earn 2 successes.",
+            hit: "Disable the device, or earn 1 success.",
+            miss: "Nil.",
+            fumble: "Trigger the device."
         }, {
             name: "Pick a Lock",
             tags: ["Manipulate"],
@@ -1530,10 +1538,10 @@ class Pathfinder2Utils {
             dc: "15x2, 20x3, 25x4, 30x5, 40x6.",
             reqprof: "T",
             action: 2,
-            crit: "You unlock the lock with no trace of tampering, or earn 2 successes.",
-            hit: "You unlock the lock, or earn 1 success.",
-            miss: "You don't unlock the lock.",
-            fumble: "You break your thieves' tools."
+            crit: "Unlock the lock with no trace, or earn 2 successes.",
+            hit: "Unlock the lock, or earn 1 success.",
+            miss: "Nil.",
+            fumble: "Break your thieves' tools."
         }, {
             name: "Seek",
             tags: ["Concentrate","Secret"],
@@ -1543,8 +1551,8 @@ class Pathfinder2Utils {
             action: 1,
             crit: "A creature becomes observed. You know where an object is.",
             hit: "An undetected creature becomes hidden, a hidden creature becomes observed. You get a clue as to where an object is.",
-            miss: "You don't detect anything.",
-            fumble: "As failure.",
+            miss: "Nil.",
+            fumble: "Nil.",
         }, {
             name: "Sense Motive",
             tags: ["Concentrate", "Secret"],
@@ -1565,8 +1573,8 @@ class Pathfinder2Utils {
             action: 1,
             crit: "Target takes -1s to Perception and Will saves for 1 minute.",
             hit: "Target takes -1s to Perception and Will saves for 1 round.",
-            miss: "Nothing happens.",
-            fumble: "The target is immune to Goblin Song for 1 hour."
+            miss: "Nil.",
+            fumble: "Target is immune to Goblin Song for 1 hour."
         }, {
             name: "Awesome Blow",
             tags: ["Barbarian", "Concentrate", "Rage"],
@@ -1574,8 +1582,8 @@ class Pathfinder2Utils {
             dc: "Target Fortitude DC.",
             reqprof: "U",
             action: 0,
-            crit: "Push the opponent up to 10' away and they fall prone and take [[1d6]] bludgeoning. You can Stride after them.",
-            hit: "Push the up to 5' away and they fall prone. You can Stride after them.",
+            crit: "Push target <=10' away, they fall prone and take [[1d6]] bludgeoning. You can Stride after them.",
+            hit: "Push target <=5' away, they fall prone. You can Stride after them.",
             miss: "You perform a normal Knockback.",
             fumble: "As failure."
         }, {
@@ -1585,9 +1593,9 @@ class Pathfinder2Utils {
             dc: "Target Fortitude DC, modified by size.",
             reqprof: "U",
             action: 1,
-            crit: "You throw the creature up to (10+Strength*5)' and it lands prone.",
-            hit: "You throw the creature up to (10+Strength*5)'.",
-            miss: "You don't throw the creature.",
+            crit: "Throw the creature <=(10+Strength*5)' and it lands prone.",
+            hit: "Throw the creature <=(10+Strength*5)'.",
+            miss: "Nil.",
             fumble: "The creature is no longer grabbed or restrained by you."
         }, {
             name: "Battle Assessment",
@@ -1598,7 +1606,7 @@ class Pathfinder2Utils {
             action: 1,
             crit: "Learn two things (GM's choice): highest enemy weakness, worst enemy save, best enemy resistance, one immunity.",
             hit: "Learn one thing from the list above.",
-            miss: "Learn nothing.",
+            miss: "Nil.",
             fumble: "Learn false information about a topic from the list."
         }, {
             name: "Sabotage",
@@ -1607,9 +1615,9 @@ class Pathfinder2Utils {
             dc: "Target's Reflex DC.",
             reqprof: "U",
             action: 1,
-            crit: "You deal 4 times your Thievery proficiency bonus in damage.",
-            hit: "You deal 2 times your Thievery proficiency bonus in damage.",
-            miss: "You don't deal any damage.",
+            crit: "Deal 4 times your Thievery proficiency bonus in damage.",
+            hit: "Deal 2 times your Thievery proficiency bonus in damage.",
+            miss: "Nil.",
             fumble: "The target is immune to your Sabotage for 1 day."
         }, {
             name: "Delay Trap",
@@ -1620,7 +1628,7 @@ class Pathfinder2Utils {
             action: 0,
             crit: "Choose: Prevent the trap from being triggered, or delay it until the start/end of your next turn.",
             hit: "As above, but the GM chooses whichever is worse. They cannot choose the start of your turn.",
-            miss: "Nothing happens.",
+            miss: "Nil.",
             fumble: "You're flat footed until the start of your next turn."
         }, {
             name: "Recognize Spell",
@@ -1628,10 +1636,10 @@ class Pathfinder2Utils {
             skill: "",
             reqprof: "T",
             action: 0,
-            crit: "You recognize the spell and get +1 save or AC against it.",
-            hit: "You recognize the spell.",
-            miss: "You don't recognize the spell.",
-            fumble: "You recognize the spell as something else."
+            crit: "Recognize the spell and get +1 save or AC against it.",
+            hit: "Recognize the spell.",
+            miss: "Nil.",
+            fumble: "Recognize the spell as something else."
         }, {
             name: "Scare To Death",
             tags: ["Death", "Emotion", "Fear", "General", "Incapacitation", "Skill"],
@@ -1639,10 +1647,134 @@ class Pathfinder2Utils {
             dc: "Enemy Will DC.",
             reqprof: "L",
             action: 1,
-            crit: "The target makes a Fortitude save against your Intimidation DC. On a failure they die. On a non-critical success they are frightened 2 and fleeing 1.",
+            crit: "Target must Fortitude save vs your Intimidation DC or die. On non-crit they are frightened 2 and fleeing 1.",
             hit: "Target is Frightened 2.",
             miss: "Target is Frightened 1,",
-            fumble: "Target is unaffected."
+            fumble: "Nil."
+        }, {
+            name: "Identify Creature (Recall Knowledge)",
+            tags: ["Concentrate","Secret"],
+            dc: "Per creature level, +2/+5/+10 for uncommon/rare/unique.",
+            skill: "",
+            reqprof: "U",
+            crit: "As success, plus you learn something subtler.",
+            hit: "You learn one of the creature's best-known attributes.",
+            miss: "Nil.",
+            fumble: "You misidentify the creature."
+        }, {
+            name: "Train Animal",
+            tags: ["Downtime","General","Manipulate","Skill"],
+            dc: "Per creature level, adjusted for attitude.",
+            skill: "nature",
+            reqprof: "T",
+            crit: "As success.",
+            hit: "Animal learns the action, or upgrades it to not need a roll.",
+            miss: "Nil.",
+            fumble: "As failure."
+        }, {
+            name: "Trick Magic Item",
+            tags: ["General","Manipulate","Skill"],
+            dc: "Per item level.",
+            skill: "",
+            reqprof: "T",
+            action: 1,
+            crit: "As success.",
+            hit: "You can use the item until the end of this turn.",
+            miss: "You can't use the item or trick it again this turn.",
+            fumble: "You can't use the item or trick it again today."
+        }, {
+            name: "AA Befriend a Local",
+            tags: ["Concentrate","Downtime","Linguistic"],
+            dc: "20.",
+            skill: "",
+            reqprof: "U",
+            crit: "-10% discount or +1 Diplomacy in Breachill, permanently.",
+            hit: "Benefits above for weeks equal to your Charisma.",
+            miss: "Nil.",
+            fumble: "You lose all benefits and take +5 DC to befriendthis NPC."
+        }, {
+            name: "AA Administer Altaerein",
+            tags: ["Concentrate","Downtime","Linguistic","Mental"],
+            skill: "society",
+            dc: "20.",
+            reqprof: "U",
+            crit: "Citadel runs for a month and +2c to Organize Labor that month.",
+            hit: "Citadel runs for a month.",
+            miss: "-4c to all downtime actions at Altaerin. Can try again tomorrow.",
+            fumble: "As failure, but can only try again next week."
+        }, {
+            name: "AA Organize Labor",
+            tags: ["Concentrate","Downtime","Linguistic","Mental"],
+            skill: "",
+            dc: "13 for regular workers, 18 for specialists.",
+            reqprof: "U",
+            crit: "Workers work for the full duration at 0.5 or 2.5 gp per day.",
+            hit: "Workers work for the full duration at 1 or 5 gp per day.",
+            miss: "Workers work for one day. If you didn't use Diplomacy, -1c to future labor checks.",
+            fumble: "Nobody works. If you didn't use Diplomacy, you can't use that skill to organize any more."
+        }, {
+            name: "EC Promote the Circus",
+            tags: ["Circus","Downtime"],
+            skill: "society",
+            dc: "Per party level.",
+            reqprof: "U",
+            crit: "Gain (2*level)+Cha modifier Anticipation.",
+            hit: "Gain level+Cha modifier Anticipation.",
+            miss: "Gain 1 Anticipation.",
+            fumble: "Nil."
+        }, {
+            name: "EC Perform a Trick",
+            tags: ["Circus","Variable"],
+            skill: "",
+            dc: "Per party level.",
+            reqprof: "U",
+            crit: "Gain (trick level) Excitement and (Trick level/2) Anticipation.",
+            hit: "Gain (trick level) Excitement.",
+            miss: "Nil.",
+            fumble: "Lose (trick level/2) Excitement."
+        }, {
+            name: "Aid",
+            tags: [],
+            skill: "",
+            dc: "Usually 20.",
+            reqprof: "U",
+            crit: "Give your ally +2c, or +3c/+4c if master/legend.",
+            hit: "Give your ally +1c.",
+            miss: "Nil.",
+            fumble: "Give your ally -1c."
+        }, {
+            name: "Battle Prayer",
+            tags: ["Divine","General","Skill"],
+            skill: "religion",
+            reqprof: "M",
+            action: 1,
+            dc: "Enemy Will DC.",
+            crit: "Deal [[2d6]] damage, or [[6d6]] if legendary. Enemy immune 1 day.",
+            hit: "Deal [[1d6]] damage, or [[3d6]] if legendary. Enemy immune 1 day.",
+            miss: "Enemy immune 1 day.",
+            fumble: "You can't reuse for 10 minutes. Enemy immune 1 day."
+        }, {
+            name: "Evangelize",
+            tags: ["Auditory","General","Linguistic","Mental","Skill"],
+            skill: "diplomacy",
+            reqprof: "M",
+            action: 1,
+            dc: "Enemy Will DC.",
+            crit: "Target agrees with you or is stupefied 2 for 1 round. Target immune 1 day.",
+            hit: "Target agrees with you or stupefied 1 for 1 round. Target immune 1 day.",
+            miss: "Target unaffected.",
+            fumble: "As Failure."
+        }, {
+            name: "Sacred Defense",
+            tags: ["Divine","General","Skill"],
+            skill: "religion",
+            reqprof: "M",
+            action: 1,
+            dc: "30, or 40 for bonus if Legendary.",
+            crit: "Gain +10thp for 1 min, or 25thp with bonus.",
+            hit: "Gain +5thp for 1 min, or 15thp with bonus.",
+            miss: "Nil.",
+            fumble: "Cannot call your deity for 1 day."
         }
         ];
 

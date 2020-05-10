@@ -64,6 +64,7 @@ Most of the abilities from the skills section are included, plus the two "standa
 
 | Ability | Shortest Abbreviation | Note |
 | -- | -- | -- |
+| Aid | `ai` | Must specify skill | 
 | Balance | `bal` | |
 | Borrow an Arcane Spell | `bo` | |
 | Climb | `cl` | | 
@@ -77,7 +78,7 @@ Most of the abilities from the skills section are included, plus the two "standa
 | Demoralize | `dem` | |
 | Disarm | `disar` | (an opponent, not a trap) |
 | Disable Device | `disab` | |
-| Earn Income | `e` | Must specify skill |
+| Earn Income | `ea` | Must specify skill |
 | Feint | `fe` | | 
 | Force Open | `fo` | | 
 | Gather Information | `ga` | |
@@ -85,6 +86,7 @@ Most of the abilities from the skills section are included, plus the two "standa
 | Hide | `hid` | Secret | 
 | High Jump | `hig` | | 
 | Identify Alchemy | `identifya` | Secret |
+| Identify Creature | `identifyc` | Secret, must specify skill, special case of Recall Knowledge |
 | Identify Magic | `identifym` | Secret, must specify skill |
 | Impersonate | `im` | Secret |
 | Learn A Spell | `le` | Must specify skill |
@@ -108,30 +110,40 @@ Most of the abilities from the skills section are included, plus the two "standa
 | Stop Bleeding | `sto` | |
 | Subsist | `su` | Must specify skill |
 | Swim | `sw` | |
-| Track | `tra` | | 
+| Track | `trac` | | 
 | Treat Disease | `treatd` | |
 | Treat Poison | `treatp` | |
 | Treat Wounds | `treatw` | |
-| Trip | `tri` | | 
+| Trip | `trip` | | 
 | Tumble Through | `tu` | | 
 
 In addition the following non-standard abilities that follow the same model are included.
 
 | Ability | Shortest Abbreviation | Note |
 | -- | -- | -- |
-| Awesome Blow | `a` | From Barbarian |
-| Battle Assessment | `bat` | From Rogue, Secret |
+| Awesome Blow | `aw` | From Barbarian |
+| Battle Assessment | `battlea` | From Rogue, Secret |
+| Battle Prayer | `battlep` | Skill Feat from Gods and Magic |
 | Delay Trap | `del` | From Rogue |
+| Evangelize | `ev` | Skill Feat from Gods and Magic |
 | Goblin Song | `go` | From Goblin Ancestry |
 | Recognize Spell | `reco` | Skill Feat, Secret, Must specify skill |
-| Sabotage | `sa` | From Rogue |
+| Sabotage | `sab` | From Rogue |
+| Sacred Defense | `sac` | Skill Feat from Gods and Magic |
 | Scare To Death | `sc` | Skill Feat |
+| Train Animal | `trai` | Skill Feat |
+| Trick Magic Item | 'tric' | Skill Feat |
 | Whirling Throw | `w` | From Monk |
 
+Also, the following custom actions from Adventure Paths are available, but they 
+are prefixed by abbreviations indicating the Adventure Path to minimise accidental 
+use.
 
-
-
-
-
-
-
+| Ability | Shortest Abbreviation | Note |
+| -- | -- | -- |
+| AA Befriend A Local | `aab` | From Age of Ashes Player's Guide |
+| AA Administer Altaerein | `aaa` | From Age of Ashes 2 |
+| AA Organize Labor | `aao` | From Age of Ashes 2 |
+| EC Promote the Circus | `ecpr` | From Extinction Curse 1 |
+| EC Perform a Trick | `ecpe` | From Extinction Curse 1 |
+     
