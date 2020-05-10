@@ -3,7 +3,7 @@ Pathfinder 2 API utilities for Roll20
 
 This is a set of utilities I found useful for running Pathfinder 2 in Roll20.
 
-To use, currently you must cut and paste the entire `script.js` file into a new tab on the **API Settings** page.  This requires you to have a Pro Roll20 account.
+To use, currently you must cut and paste the entire `pf2utils.js` file into a new tab on the **API Settings** page.  This requires you to have a Pro Roll20 account.
 
 ## Functions
 
