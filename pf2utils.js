@@ -124,6 +124,10 @@ class Pathfinder2Utils {
      * @returns {?Roll20Object} The represented character, or null if no character represented.
      */
     getCharForToken(token) {
+        if (!token.get) {
+            log("Something without a get method, namely " + token.toString() + " of type " + (typeof token) + " has been passed to getCharForToken.");
+            log("This is a problem. I am about to crash.");
+        }
         if (token.get("represents") === "") {
             return null;
         }
@@ -284,6 +288,21 @@ class Pathfinder2Utils {
 
 
     /**
+     * Gets the highest level standard DC that a given rolled value can beat.
+     * @param {number} roll The rolled value.
+     * @returns {number} The highest standard DC the roll can beat.
+     */
+    highestLevelRollBeats(roll) {
+        let level = 0;
+        while ((roll >= this.level_dcs[level])) {
+            level++;
+        }
+        return level-1; // Loop stopped at the first level we DO NOT beat
+    }
+
+
+
+/**
      * Roll a dice and add a given number of rolls and given set of modifiers.
      * @param target
      * @param attributes
@@ -359,17 +378,26 @@ class Pathfinder2Utils {
         }
         modString = modString + "]]";
 
-        if (modroll < this.level_dcs[0]) {
-            modString += " (NoLvl, ";
-        } else {
-            let level = 0;
-            while ((modroll > this.level_dcs[level])) {
-                level++;
-            }
-            modString += " (Lv" + level + ", ";
-        }
+        let hitLvl = this.highestLevelRollBeats(modroll);
+        modString += " (Lv" + hitLvl + ", ";
         modString += "+" + (modroll-10) + " opposing)";
         return { "text": modString, "roll": modroll };
+    }
+
+    skillAssurance(target, skill) {
+        let profBonus = this.getTokenAttr(target, skill+"_proficiency");
+        let profLetter = this.getTokenAttr(target, skill+"_proficiency_display");
+        if (profBonus === undefined) {
+            return { "text": "(missing)", "roll": 10 };
+        }
+        let profInt = parseInt(profBonus);
+        if (isNaN(profInt)) {
+            return { "text": "(invalid)", "roll": 10 };
+        }
+        let resString = "10 + " + profBonus + " = " + (10+profInt);
+        let hitLvl = this.highestLevelRollBeats(profInt+10);
+        resString = resString + " (Lv" + hitLvl + ", +" + (profBonus) + "opposing)";
+        return { "text": resString, "roll": 10+profInt };
     }
 
     /**
@@ -453,21 +481,39 @@ class Pathfinder2Utils {
      * @param {string} property The user specification of the property name.
      * @param {Roll20Object[]} targets The target list.
      */
-    getProperty(property, targets) {
+    getProperty(property, targets, tags) {
         let results = {};
+        let impliedtags = [];
         let attr = this.getNamedField(property);
         if (attr === undefined) {
             return ("Unknown character property, " + property);
         }
+        impliedtags.push(attr.name);
+        if (attr.stat) {
+            let tagName = this.st_names[attr.stat];
+            if (!impliedtags.includes(tagName)) impliedtags.push(tagName);
+        }
+        let fulltags = tags.concat(impliedtags);
         for (let target of targets) {
             let char = this.getCharForToken(target);
             let propertyValue = this.getTokenAttr(target, attr.field);
             let name = this.getTokenName(target);
+            let tagmod = this.calculateTotalMod(target, fulltags);
 
             if (propertyValue == null) {
                 results[name] = "(No sheet)";
             } else {
-                results[name] = propertyValue;
+                if (tagmod === 0) {
+                    results[name] = propertyValue;
+                } else {
+                    let output = this.appendNumToSum(propertyValue, tagmod);
+                    let intValue = parseInt(propertyValue);
+                    if (!isNaN(intValue)) {
+                        results[name] = output + " = " + (intValue+tagmod);
+                    } else {
+                        results[name] = output;
+                    }
+                }
             }
         }
         return (this.dictToTemplate("Get " + attr.name, results));
@@ -511,29 +557,66 @@ class Pathfinder2Utils {
      * @param {Roll20Object[]} targets The target list.
      * @returns {string} Command response.
      */
-    bestProperty(property, targets) {
+    bestProperty(property, targets, tags) {
         let bestName = "";
         let bestValue = -9999;
+        let bestText = "";
+        let impliedtags = [];
         let attr = this.getNamedField(property);
         if (attr === undefined) {
             return ("Unknown character property, " + property);
         }
+        impliedtags.push(attr.name);
+        if (attr.stat) {
+            let tagName = this.st_names[attr.stat];
+            if (!impliedtags.includes(tagName)) impliedtags.push(tagName);
+        }
+        let fulltags = tags.concat(impliedtags);
+
         for (let target of targets) {
+            let tagmod = this.calculateTotalMod(target, fulltags);
             let value = this.getTokenAttr(target, attr.field);
             if (value === null) continue;
-            if (value > bestValue) {
-                bestValue = value;
+            let intValue = parseInt(value);
+            if (isNaN(intValue)) continue;
+            let effValue = intValue + tagmod;
+            if (effValue > bestValue) {
+                bestValue = effValue;
                 bestName = this.getTokenName(target);
+                if (tagmod == 0) {
+                    bestText = effValue;
+                } else {
+                    bestText = this.addNumToSum(value, tagmod) + " = " + effValue;
+                }
             }
         }
         if (bestValue === -9999) {
             return ("No best " + property + " found.");
         } else {
             let results = {};
-            results[bestName] = bestValue;
+            results[bestName] = bestText;
             return (this.dictToTemplate("Best " + attr.name, results));
 
         }
+    }
+
+    assureProperty(property, targets) {
+        let results = {};
+        let attr = this.getNamedField(property);
+        if (attr === undefined) {
+            return ("Unknown character property, " + property);
+        }
+        if (attr.type !== this.ft_skill) {
+            return ("Assurance feat can only apply to skills, not " + property);
+        }
+        for (let target of targets) {
+            let name = this.getTokenName(target);
+            if (name === undefined) continue;
+            let result = this.skillAssurance(target, attr.field);
+            results[name] = result.text;
+        }
+        let header = "Assurance " + attr.name;
+        return (this.dictToTemplate(header, results));
     }
 
     /**
@@ -973,15 +1056,17 @@ class Pathfinder2Utils {
         this.level_dcs = [14, 15, 16, 18, 19, 20, 22, 23, 24, 26, 27, 28, 30, 31, 32, 34, 35, 36, 38, 39, 40, 42, 44, 46, 48, 50, 99999];
 
 
+        // Params, Target, Tags, Action marker
+
         this.commands = [
             {cmd: "ability", params: [{ name: "ability"}, {name: "skillchoice", optional: true}],
              do: ((p,t,r,a) => this.doAbility(p.ability, p.skillchoice, t, r))},
 
             {cmd: "get", params: [{ name: "property"}],
-             do: ((p,t,r,a) => this.getProperty(p.property,t))},
+             do: ((p,t,r,a) => this.getProperty(p.property,t, r))},
 
             {cmd: "best", params: [{ name: "property"}],
-             do: ((p,t,r,a) => this.bestProperty(p.property,t))},
+             do: ((p,t,r,a) => this.bestProperty(p.property,t, r))},
 
             {cmd: "roll", params: [{ name: "property"}],
              do: ((p,t,r,a) => this.rollProperty(p.property,t,false,false, r))},
@@ -1002,11 +1087,15 @@ class Pathfinder2Utils {
              do: ((p,t,r,a) => this.clearMods())},
 
             {cat: "mod", cmd: "explain", params: [],
-             do: ((p,t,r,a) => this.explainMods(t,r))}
+             do: ((p,t,r,a) => this.explainMods(t,r))},
+
+            {cmd: "assure", params: [{ name: "property"}],
+             do: ((p,t,r,a) => this.assureProperty(p.property,t))}
         ];
 
 
         this.fields = [
+            { name:"ac", field: "armor_class", type:this.ft_calc, stat: this.st_dex },
             { name:"strength", field: "strength_modifier", type:this.ft_stat },
             { name:"dexterity", field: "dexterity_modifier", type:this.ft_stat },
             { name:"constitution", field: "constitution_modifier", type:this.ft_stat },
@@ -1033,10 +1122,34 @@ class Pathfinder2Utils {
             { name:"fortitude", field: "saving_throws_fortitude", type:this.ft_save, stat: this.st_con },
             { name:"reflex", field: "saving_throws_reflex", type:this.ft_save, stat: this.st_dex },
             { name:"will", field: "saving_throws_will", type:this.ft_save, stat: this.st_wis },
-            { name:"ac", field: "armor_class", type:this.ft_calc, stat: this.st_dex },
             { name:"perception", field: "perception", type:this.ft_skill, stat: this.st_wis },
             { name:"level", field: "level", type:this.ft_calc },
-            { name:"initiative", field: "initiative_modifier", type:this.ft_calc } ];
+            { name:"initiative", field: "initiative_modifier", type:this.ft_calc }];
+
+        this.creature_identify = [
+            { type: "aberrant", skill: "occultism"},
+            { type: "animal", skill: "nature"},
+            { type: "astral", skill: "occultism"},
+            { type: "beast", skill: "nature"},
+            { type: "celestial", skill: "religion"},
+            { type: "construct", skill: "crafting"},
+            { type: "dragon", skill: "arcana"},
+            { type: "elemental", skill: "arcana"},
+            { type: "ethereal", skill: "occultism"},
+            { type: "fey", skill: "nature"},
+            { type: "fiend", skill: "religion"},
+            { type: "fungus", skill: "nature"},
+            { type: "humanoid", skill: "society"},
+            { type: "monitor", skill: "religion"},
+            { type: "ooze", skill: "occultism"} ,
+            { type: "plant", skill: "nature"},
+            { type: "spirit", skill: "occultism" },
+            { type: "undead", skill: "religion"}
+        ];
+
+        this.offset4xpsimple = [2,3,4,6,8,12,16,24,32];
+        this.offset4xpcomplex = [10,15,20,30,40,60,80,120,160];
+
 
         this.abilities = [{
             name: "Decipher Writing",
@@ -1775,6 +1888,136 @@ class Pathfinder2Utils {
             hit: "Gain +5thp for 1 min, or 15thp with bonus.",
             miss: "Nil.",
             fumble: "Cannot call your deity for 1 day."
+        }, { // AoA5
+            name: "AA Build Connections",
+            tags: ["Downtime"],
+            skill: "",
+            reqprof: "U",
+            dc: "36.",
+            crit: "+1c to related downtime actions for 1 month, and earn a favor.",
+            hit: "+1c to related downtime actions for 1 week.",
+            miss: "Nil.",
+            fumble: "-1 to related downtime actions for 3 days."
+        }, {
+            name: "AA Host Event",
+            tags: ["Downtime"],
+            skill: "",
+            reqprof: "U",
+            dc: "36. +1c per extra 250gp spent.",
+            crit: "All PCs +2c to related downtime actions for 3 days, and two guilds -1sp.",
+            hit: "All PCs +1c to related downtime actions for 1 day, and one guild -1sp.",
+            miss: "Nil.",
+            fumble: "All PCs -2c to related downtime actions for 1 day."
+        }, {
+            name: "AA Influence Guild",
+            tags: ["Downtime"],
+            skill: "",
+            reqprof: "U",
+            dc: "34.",
+            crit: "-3sp that guild.",
+            hit: "-1sp that guild.",
+            miss: "Nil.",
+            fumble: "+1sp that guild."
+        }, {
+            name: "AA Issue Challenge",
+            tags: ["Downtime"],
+            skill: "",
+            reqprof: "U",
+            dc: "36.",
+            crit: "Bshez Shak accepts your challenge.",
+            hit: "+1c to issue challenges for 7 days, stacking to +4.",
+            miss: "Nil.",
+            fumble: "You lose bonuses from previous challenges and can't challenge again for a day."
+        }, { // AoA3
+            name: "AA Topple Crates",
+            tags: ["Manipulate"],
+            skill: "athletics",
+            reqprof: "U",
+            dc: "22.",
+            crit: "As success.",
+            hit: "Crates fall in 15' line as difficult terrain dealing 3d10+6 B with basic Reflex 26, prone on fumble.",
+            miss: "Nil.",
+            fumble: "The hit affect applies to you and your square."
+        }, {  // AoA4
+            name: "AA Deduce Traditians",
+            tags: ["Concentrate", "Linguistic", "Secret"],
+            skill: "",
+            reqprof: "U",
+            dc: "30 Perception or 25 Society.",
+            crit: "You learn a guild's favored skill and the regent's Skepticism.",
+            hit: "You learn a guild's favored skill.",
+            miss: "Nil.",
+            fumble: "You learn a wrong favored skill.",
+        }, {
+            name: "AA Influence Regent",
+            tags: ["Auditory", "Concentrate", "Linguistic", "Mental", "Secret"],
+            skill: "",
+            reqprof: "U",
+            dc: "32 Diplomacy/Lore or 28 favored skill.",
+            crit: "-2 Skepticism.",
+            hit: "-1 Skepticism.",
+            miss: "Nil.",
+            fumble: "+1 Skepticism."
+        }, {
+            name: "AA Check The Walls",
+            tags: ["Exploration", "Secret"],
+            skill: "",
+            reqprof: "U",
+            dc: "32 Arcana or 27 Crafting.",
+            crit: "The PC finds the source of irregularities in the runes.",
+            hit: "The PC finds irregularities in the runes.",
+            miss: "The PC finds only basic information but can try again.",
+            fumble: "The PC finds an apparent but incorrect flaw."
+        }, {
+            name: "AA Guild Investigation",
+            tags: ["Concentrate", "Exploration", "Secret"],
+            skill: "",
+            reqprof: "U",
+            dc: "30.",
+            crit: "As success, plus the PC finds compelling evidence.",
+            hit: "The PC finds the culprit and his location.",
+            miss: "The culprit knows the PCs are looking for him.",
+            fumble: "The culprit flees to his allies."
+        }, {
+            name: "AA Seek the Hidden Forge",
+            tags: ["Downtime", "Secret"],
+            skill: "",
+            reqprof: "U",
+            dc: "36, -2 per Forge clue beyond the first.",
+            crit: "The PC finds the entrance to the Forge.",
+            hit: "+4c to the next check to seek the Forge.",
+            miss: "Nil.",
+            fumble: "The defenders of the Forge learn the PCs seek them."
+        }, {  // AoA6
+            name: "AA Distract Guards",
+            tags: ["Exploration", "Manipulate", "Move"],
+            skill: "",
+            reqprof: "U",
+            dc: "41.",
+            crit: "The guards are distracted for 1 hour.",
+            hit: "The guards are distracted for 20 minutes.",
+            miss: "-2u to any attempt to distract these guards for 10 minutes.",
+            fumble: "The guards escort you out, or on the third time, arrest you."
+        }, {
+            name: "AA Investigate Chamber",
+            tags: ["Exploration", "Manipulate", "Move"],
+            skill: "perception",
+            reqprof: "U",
+            dc: "36.",
+            crit: "You learn secret information about the room.",
+            hit: "You learn basic information about the room.",
+            miss: "You learn obvious information about the room.",
+            fumble: "As failure, plus guards escort you out."
+        }, {
+            name: "AA Convince Mengkare",
+            tags: ["Auditory", "Concentrate", "Linguistic", "Mental"],
+            skill: "",
+            reqprof: "U",
+            dc: "Varies, see pages 46-47.",
+            crit: "+2 Doubt.",
+            hit: "+1 Doubt.",
+            miss: "Nil.",
+            fumble: "-1 Doubt."
         }
         ];
 
