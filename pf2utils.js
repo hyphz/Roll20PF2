@@ -1,14 +1,20 @@
-/**
- * @typedef {Object} Roll20Object
- * @typedef {{field: string, name: string, type: number}} Field
- * @typedef {{name: string, cat: string, value: number, tags: string[], targets: string[]}} Modifier
- */
 
+/** @typedef {{field: string, name: string, type: number, stat: number}} */
+var Field;
+
+/** @typedef {{name: string, cat: string, value: number, tags: !Array<string>, targets: !Array<string>}}  */
+var Modifier;
+
+
+
+/** *
+ *
+ */
 class Pathfinder2Utils {
 
     /**
      * Send a message to public chat with the script's name.
-     * @param {String} msg The message to send
+     * @param {string} msg The message to send
      */
     send(msg) {
         sendChat("PF2", msg);
@@ -26,6 +32,12 @@ class Pathfinder2Utils {
         return func(value);
     }
 
+    /**
+     * Applies a series of functions to a value, stopping if it becomes nullish.
+     * @param value
+     * @param funcs
+     * @returns {null|undefined|*}
+     */
     ninos(value, funcs) {
         let v = value;
         for (let func of funcs) {
@@ -36,7 +48,7 @@ class Pathfinder2Utils {
 
     /**
      * Checks if a string parameter is effectively absent via being null or blank.
-     * @param str
+     * @param {?string} str
      * @returns {boolean} True if the string is effectively null.
      */
     isAbsentString(str) {
@@ -48,8 +60,8 @@ class Pathfinder2Utils {
 
     /**
      * Return an ordinal number for the Pathfinder 2 skill proficiency letter specified.
-     * @param {!String} letter The skill letter.
-     * @returns {!number} An ordinal rank for the skill proficiency, with unknown valued defaulted to untrained.
+     * @param {string} letter The skill letter.
+     * @returns {number} An ordinal rank for the skill proficiency, with unknown values defaulted to untrained.
      */
 
     skillOrdinal(letter) {
@@ -63,11 +75,10 @@ class Pathfinder2Utils {
             default: return 0;
         }
     }
-
     /**
      * Standardise a skill proficiency letter read from a character sheet.
-     * @param {!string} letter
-     * @returns {!string}
+     * @param {string} letter
+     * @returns {string}
      */
     standardiseSkillLetter(letter) {
         switch(letter) {
@@ -78,13 +89,12 @@ class Pathfinder2Utils {
                 return letter.toUpperCase();
             default: return "U";
         }
-        return "U";
     }
 
     /**
      * Get all tokens listed as selected on an input message.
      * @param selected The selected component of the input message.
-     * @returns {Roll20Object[]} The list of selected tokens.
+     * @returns {!Array<!Roll20Object>} The list of selected tokens.
      */
     selectedTokens(selected) {
         if (selected === undefined) return [];
@@ -95,8 +105,8 @@ class Pathfinder2Utils {
 
     /**
      * Canonize a name by removing spaces and converting to lower case.
-     * @param {!string} name The input name.
-     * @returns {!string} The standardised name.
+     * @param {string} name The input name.
+     * @returns {string} The standardised name.
      */
     abbreviate(name) {
         return name.replace(/ /g, "").toLowerCase();
@@ -105,7 +115,7 @@ class Pathfinder2Utils {
     /**
      * Convert a dictionary to a string that produces a roll20 standard template showing members of that dict.
      * @param {string} title
-     * @param {Object.<string,(string|number)>} dict The data to be included in the template.
+     * @param {!Object<string,(string|number)>} dict The data to be included in the template.
      * @returns {string} The template string.
      */
     dictToTemplate(title, dict) {
@@ -140,7 +150,7 @@ class Pathfinder2Utils {
     /**
      * Get the name for a token, from its character or itself, or else an unknown placeholder.
      * @param {!Roll20Object} token The token.
-     * @returns {!string} The name for the token.
+     * @returns {string} The name for the token.
      */
     getTokenName(token) {
         let char = this.getCharForToken(token);
@@ -154,7 +164,7 @@ class Pathfinder2Utils {
 
     /**
      * Get all tokens on the active player page.
-     * @returns {!Roll20Object[]} The list of all tokens.
+     * @returns {!Array<!Roll20Object>} The list of all tokens.
      */
     getPageTokens() {
         let curPage = Campaign().get("playerpageid");
@@ -165,7 +175,7 @@ class Pathfinder2Utils {
     /**
      * Returns true if the token is controlled by someone other than the GM.
      * @param {!Roll20Object} token The token
-     * @returns {!boolean} True the token represents a character controlled by a non-GM.
+     * @returns {boolean} True the token represents a character controlled by a non-GM.
      */
     tokenIsPC(token) {
         let char = this.getCharForToken(token);
@@ -176,8 +186,8 @@ class Pathfinder2Utils {
 
     /**
      * Find the tokens referred to by a fragment of a target specifier.
-     * @param {!String} specifier The specifier
-     * @returns {!Roll20Object[]} The tokens it likely refers to.
+     * @param {string} specifier The specifier
+     * @returns {!Array<!Roll20Object>} The tokens it likely refers to.
      */
     findTargetToken(specifier) {
         let canonSpec = this.abbreviate(specifier);
@@ -199,7 +209,7 @@ class Pathfinder2Utils {
 
     /**
      * Reads the turn order.
-     * @returns {!*[]}
+     * @returns {!Array<*>}
      */
 
     getTurnOrder() {
@@ -215,7 +225,7 @@ class Pathfinder2Utils {
      * Updates a token's value in the turn order; adding if it is not there, replacing it if it is
      * already present; and placing it so that the list remains in descending roll order.
      * @param {!Roll20Object} token The token object to update.
-     * @param {!number} newOrder The new turn order value.
+     * @param {number} newOrder The new turn order value.
      */
 
     updateTurnOrder(token, newOrder) {
@@ -223,7 +233,7 @@ class Pathfinder2Utils {
         order = _.reject(order, x => x.id === token.get("_id"));
         let pos=0;
         for (pos=0; pos<order.length; pos++) {
-            if (parseInt(order[pos].pr) < newOrder) break;
+            if (parseInt(order[pos].pr,10) < newOrder) break;
         }
         order.splice(pos, 0, {"id": token.get("_id"), "pr": newOrder, "custom": ""});
         Campaign().set("turnorder", JSON.stringify(order));
@@ -231,7 +241,7 @@ class Pathfinder2Utils {
 
     /**
      * Rolls a d20 using the approved RNG.
-     * @returns {!Number} A random number from 1-20.
+     * @returns {number} A random number from 1-20.
      */
     d20() {
         return randomInteger(20);
@@ -240,7 +250,7 @@ class Pathfinder2Utils {
     /**
      * Get the named attribute value of the character represented by given token.
      * @param {!Roll20Object} token The token.
-     * @param {!string} property The name of the property.
+     * @param {string} property The name of the property.
      * @returns {null|string|number} The property value or null if it's missing.
      */
     getTokenAttr(token, property) {
@@ -254,7 +264,7 @@ class Pathfinder2Utils {
 
     /**
      * Get the description for the named field from the field database.
-     * @param {!string} strname
+     * @param {string} strname
      * @returns {?Field} The data stored about the field.
      */
 
@@ -265,7 +275,7 @@ class Pathfinder2Utils {
 
     /**
      * Get the Roll20 attribute name from an internal field name.
-     * @param {!string} strname The internal field name.
+     * @param {string} strname The internal field name.
      * @returns {?string} The Roll20 attribute name.
      */
     namedFieldToAttrName(strname) {
@@ -275,8 +285,8 @@ class Pathfinder2Utils {
 
     /**
      * Takes a string representing a sum as written arithmetic and adds another number to it.
-     * @param sum The string sum.
-     * @param number The number to add.
+     * @param {string} sum The string sum.
+     * @param {number} number The number to add.
      * @returns {string} The new string sum.
      */
 
@@ -302,11 +312,12 @@ class Pathfinder2Utils {
 
 
 
-/**
+    /**
      * Roll a dice and add a given number of rolls and given set of modifiers.
-     * @param target
-     * @param attributes
-     * @param modifiers
+     * @param {!Roll20Object} target The target carrying the modifiers.
+     * @param {!Array<!Field>} attributes The list of attributes to roll (and sum).
+     * @param {!Array<number>} modifiers Additional number modifiers to add.
+     * @param {!Array<string>} tags List of extra (non-implicit) tags to apply.
      * @returns {{roll: number, text: string}} The roll result.
      */
     rollAttribute(target, attributes, modifiers, tags) {
@@ -342,7 +353,7 @@ class Pathfinder2Utils {
                 bad = true;
             }
             // Property value not a number (possibly an empty string)? Default to 0.
-            let numProp = parseInt(propertyValue);
+            let numProp = parseInt(propertyValue,10);
             if (isNaN(numProp)) {
                 numProp = 0;
                 bad = true;
@@ -384,13 +395,19 @@ class Pathfinder2Utils {
         return { "text": modString, "roll": modroll };
     }
 
+    /**
+     * Return the result of a target using the Assurance feat on the given skill.
+     * @param {!Roll20Object} target The target.
+     * @param {string} skill The skill name (must be a skill)
+     * @returns {{roll: number, text: string}}
+     */
     skillAssurance(target, skill) {
         let profBonus = this.getTokenAttr(target, skill+"_proficiency");
         let profLetter = this.getTokenAttr(target, skill+"_proficiency_display");
         if (profBonus === undefined) {
             return { "text": "(missing)", "roll": 10 };
         }
-        let profInt = parseInt(profBonus);
+        let profInt = parseInt(profBonus,10);
         if (isNaN(profInt)) {
             return { "text": "(invalid)", "roll": 10 };
         }
@@ -404,7 +421,9 @@ class Pathfinder2Utils {
      * Carries out the named PF2 ability. This is the "ability" command.
      * @param {string} abilityString The user specification of the ability.
      * @param {string} freeSkill The user specification of the skill to be used for free skill abilities.
-     * @param {Roll20Object[]} targets The list of targets.
+     * @param {!Array<!Roll20Object>} targets The list of targets.
+     * @param {!Array<string>} tags Additonal tags for the roll.
+     * @returns {string} The command response.
      */
     doAbility(abilityString, freeSkill, targets, tags) {
         // Find the ability in the ability list
@@ -479,7 +498,9 @@ class Pathfinder2Utils {
     /**
      * Fetches a property value. This corresponds to the "get" command.
      * @param {string} property The user specification of the property name.
-     * @param {Roll20Object[]} targets The target list.
+     * @param {!Array<!Roll20Object>} targets The target list.
+     * @param {!Array<string>} tags Additional tags for modifiers.
+     * @returns {string} The command result.
      */
     getProperty(property, targets, tags) {
         let results = {};
@@ -507,7 +528,7 @@ class Pathfinder2Utils {
                     results[name] = propertyValue;
                 } else {
                     let output = this.appendNumToSum(propertyValue, tagmod);
-                    let intValue = parseInt(propertyValue);
+                    let intValue = parseInt(propertyValue,10);
                     if (!isNaN(intValue)) {
                         results[name] = output + " = " + (intValue+tagmod);
                     } else {
@@ -522,10 +543,10 @@ class Pathfinder2Utils {
     /**
      * Rolls a property value. This corresponds to the "roll" command.
      * @param {string} property The property name to roll.
-     * @param {Roll20Object[]} targets The target list.
+     * @param {!Array<!Roll20Object>} targets The target list.
      * @param {boolean} isInit Should initiative modifier be added?
-     * @param {boolean }setInit Should turn tracker be updated?
-     * @param {String[]} tags List of extra rolltags.
+     * @param {boolean} setInit Should turn tracker be updated?
+     * @param {!Array<string>} tags List of extra rolltags.
      * @returns {string} Command response.
      */
     rollProperty(property, targets, isInit, setInit, tags) {
@@ -554,7 +575,8 @@ class Pathfinder2Utils {
     /**
      * Calculates the best value of a given property in the range. This corresponds to the "best" command.
      * @param {string} property The property name.
-     * @param {Roll20Object[]} targets The target list.
+     * @param {!Array<!Roll20Object>} targets The target list.
+     * @param {!Array<string>} tags Tags for calculating modifiers.
      * @returns {string} Command response.
      */
     bestProperty(property, targets, tags) {
@@ -577,7 +599,7 @@ class Pathfinder2Utils {
             let tagmod = this.calculateTotalMod(target, fulltags);
             let value = this.getTokenAttr(target, attr.field);
             if (value === null) continue;
-            let intValue = parseInt(value);
+            let intValue = parseInt(value,10);
             if (isNaN(intValue)) continue;
             let effValue = intValue + tagmod;
             if (effValue > bestValue) {
@@ -586,7 +608,7 @@ class Pathfinder2Utils {
                 if (tagmod == 0) {
                     bestText = effValue;
                 } else {
-                    bestText = this.addNumToSum(value, tagmod) + " = " + effValue;
+                    bestText = this.appendNumToSum(value, tagmod) + " = " + effValue;
                 }
             }
         }
@@ -600,6 +622,13 @@ class Pathfinder2Utils {
         }
     }
 
+    /**
+     * Calculates the results of targets using the assurance property on a skill. This implements
+     * the "assure" command.
+     * @param {string} property The property name (must be a skill)
+     * @param {!Array<!Roll20Object>} targets The target name.
+     * @returns {string} Command output.
+     */
     assureProperty(property, targets) {
         let results = {};
         let attr = this.getNamedField(property);
@@ -622,7 +651,7 @@ class Pathfinder2Utils {
     /**
      * Get the list of all targets given by a written target specifier.
      * @param {string} spec The target specifier, including the initial @.
-     * @returns {Roll20Object[]} The list of targets found (which may be empty)
+     * @returns {!Array<!Roll20Object>} The list of targets found (which may be empty)
      */
     getSpecifiedTargets(spec) {
         let targets = [];
@@ -637,7 +666,7 @@ class Pathfinder2Utils {
     /**
      * Get the list of targets implied by a message that didn't have a target specifier.
      * @param msg The roll20 message object.
-     * @returns {Roll20Object[]|null|*[]}
+     * @returns {?Array<!Roll20Object>}
      */
     getInferredTargets(msg) {
         // Were there tokens selected? If so, use those.
@@ -681,15 +710,15 @@ class Pathfinder2Utils {
      * @param {string} name The name for the modifier.
      * @param {string} cat The modifier category.
      * @param {number} amount The value of the modifier.
-     * @param {Roll20Object[]} targets The targeted tokens.
-     * @param {string[]} tags The affected rolltags.
+     * @param {!Array<!Roll20Object>} targets The targeted tokens.
+     * @param {!Array<string>} tags The affected rolltags.
      * @returns {string} Command output.
      */
     addMod(name, cat, amount, targets, tags) {
         if (name === undefined) return "Modifier name missing.";
         if (cat === undefined) return "Modifier category missing.";
         if (amount === undefined) return "Modifier value missing.";
-        let imod = parseInt(amount);
+        let imod = parseInt(amount,10);
         if (isNaN(imod)) return "Modifier value " + amount + " is not a number.";
         if (tags.length === 0) return "Modifier must have some tags.";
         if (!["c","i","s","u"].includes(cat)) {
@@ -724,9 +753,9 @@ class Pathfinder2Utils {
 
     /**
      * Identifies if a given modifier applies to a given target and tag set.
-     * @param {Modifier} mod The modifier.
-     * @param {Roll20Object} target The target token.
-     * @param {string[]} tags The list of rolltags.
+     * @param {!Modifier} mod The modifier.
+     * @param {!Roll20Object} target The target token.
+     * @param {!Array<string>} tags The list of rolltags.
      * @returns {boolean} Does the modifier apply?
      */
     modApplies(mod, target, tags) {
@@ -745,8 +774,8 @@ class Pathfinder2Utils {
 
     /**
      * Calculate the total modifier to apply to a given target with given rolls.
-     * @param {Roll20Object} target The target token.
-     * @param {string[]} tags The list of roll tags.
+     * @param {!Roll20Object} target The target token.
+     * @param {!Array<string>} tags The list of roll tags.
      * @returns {number} The modifier.
      */
     calculateTotalMod(target, tags) {
@@ -759,7 +788,7 @@ class Pathfinder2Utils {
                 // If it's not untyped
                 if (mod.cat !== "u") {
                     // Check if it is either the best bonus so far in that type, or the worst penalty.
-                    let imod = parseInt(mod.value);
+                    let imod = parseInt(mod.value,10);
                     if (imod >= 0) {
                         let oldBest = bests[mod.cat];
                         if ((oldBest === undefined) || (oldBest <= imod)) {
@@ -773,7 +802,7 @@ class Pathfinder2Utils {
                     }
                 } else {
                     // Untyped bonuses and penalties always apply.
-                    total += parseInt(mod.value);
+                    total += parseInt(mod.value,10);
                 }
             }
         }
@@ -782,32 +811,31 @@ class Pathfinder2Utils {
         for (let cat in worsts) { total += worsts[cat]; }
         return total;
     }
-
     /**
      * Explain the modifier total for given targets and tags. This corresponds to the mod explain command and
      * could probably be better written.
-     * @param {Roll20Object[]} targets The target tokens.
-     * @param {String[]} tags The rolltags.
+     * @param {!Array<!Roll20Object>} targets The target tokens.
+     * @param {!Array<string>} tags The rolltags.
      * @returns {string} Command output.
      */
+
     explainMods(targets, tags) {
         let out = "";
         let bests = {};
         let worsts = {};
-
         for (let target of targets) {
             for (let mod of state.PF2.modifiers) {
                 if (this.modApplies(mod, target, tags)) {
                     if (mod.cat !== "u") {
-                        let imod = parseInt(mod.value);
+                        let imod = parseInt(mod.value,10);
                         if (imod >= 0) {
                             let oldBest = bests[mod.cat];
-                            if ((oldBest === undefined) || (parseInt(oldBest.value) <= imod)) {
+                            if ((oldBest === undefined) || (parseInt(oldBest.value,10) <= imod)) {
                                 bests[mod.cat] = mod;
                             }
                         } else {
                             let oldWorst = worsts[mod.cat];
-                            if ((oldWorst === undefined) || (parseInt(oldWorst.value) >= imod)) {
+                            if ((oldWorst === undefined) || (parseInt(oldWorst.value,10) >= imod)) {
                                 worsts[mod.cat] = mod;
                             }
                         }
@@ -822,7 +850,7 @@ class Pathfinder2Utils {
                 if (this.modApplies(mod, target, tags)) {
                     out = out + "<tr>";
                     let ok = false;
-                    let imod = parseInt(mod.value);
+                    let imod = parseInt(mod.value,10);
                     if (mod.cat !== "u") {
                         if (imod >= 0) {
                             if ((mod.name !== bests[mod.cat].name)) {
@@ -993,7 +1021,7 @@ class Pathfinder2Utils {
                             // If parameter in template must be an int, check string can convert to an int and give
                             // up parsing if it can't.
                             if (param.mustInt) {
-                                candidateParam = parseInt(candidateParam);
+                                candidateParam = parseInt(candidateParam,10);
                                 if (isNaN(candidateParam)) {
                                     paramsGood = false;
                                     break;
@@ -1028,11 +1056,8 @@ class Pathfinder2Utils {
             }
         }
     }
-
     constructor() {
-
         on("chat:message", (msg) => this.message(msg));
-
         if (!state.hasOwnProperty("PF2")) {
             log("Initialized state.");
             state.PF2 = {};
@@ -1041,7 +1066,6 @@ class Pathfinder2Utils {
             log("Initialized modifiers.");
             state.PF2.modifiers = [];
         }
-
         this.ft_stat = 1;
         this.ft_calc = 2;
         this.ft_skill = 3;
@@ -1090,7 +1114,32 @@ class Pathfinder2Utils {
              do: ((p,t,r,a) => this.explainMods(t,r))},
 
             {cmd: "assure", params: [{ name: "property"}],
-             do: ((p,t,r,a) => this.assureProperty(p.property,t))}
+             do: ((p,t,r,a) => this.assureProperty(p.property,t))},
+
+            {cat: "debug", cmd: "targets", params: [],
+            do: ((p,t,r,a) => {
+                let names = _.map(t, x => this.getTokenName(x));
+                return names.join(", ");
+            })},
+
+            {cat: "debug", cmd: "rawget", params: [{ name: "property"} ],
+            do: ((p,t,r,a) => {
+                let results = _.map(t, x => this.getTokenAttr(x,p.property));
+                let out = "";
+                for (let r of results) {
+                    if (r === undefined) {
+                        out += "(undef) ";
+                    } else if (r === null) {
+                        out += "(null) ";
+                    } else {
+                        out += "(" + (typeof r) + ")=*" + r.toString() + "* ";
+                    }
+                }
+                return out;
+            })},
+
+            {cat: "debug", cmd: "echo", params: [{name: "thing"}], noTarget: true,
+            do: ((p,t,r,a) => p.thing)}
         ];
 
 
@@ -1939,7 +1988,7 @@ class Pathfinder2Utils {
             miss: "Nil.",
             fumble: "The hit affect applies to you and your square."
         }, {  // AoA4
-            name: "AA Deduce Traditians",
+            name: "AA Deduce Traditions",
             tags: ["Concentrate", "Linguistic", "Secret"],
             skill: "",
             reqprof: "U",
