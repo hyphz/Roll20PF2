@@ -1086,8 +1086,8 @@ var Pathfinder2Utils = Pathfinder2Utils || (function() {
     function isAbsentString(str) {
         if (str === null) return true;
         if (str === undefined) return true;
-        if (str === "") return true;
-        return false;
+        return str === "";
+
     }
 
     /**
@@ -1131,8 +1131,7 @@ var Pathfinder2Utils = Pathfinder2Utils || (function() {
     function selectedTokens(selected) {
         if (selected === undefined) return [];
         let realObjs = selected.map((x) => getObj(x._type, x._id));
-        let tokens = realObjs.filter((x) => (x.get("_subtype") === "token"));
-        return tokens;
+        return realObjs.filter((x) => (x.get("_subtype") === "token"));
     }
 
     /**
@@ -1174,8 +1173,7 @@ var Pathfinder2Utils = Pathfinder2Utils || (function() {
             return null;
         }
         let charId = token.get("represents");
-        let char = getObj("character", charId);
-        return char;
+        return getObj("character", charId);
     }
 
 
@@ -1200,8 +1198,7 @@ var Pathfinder2Utils = Pathfinder2Utils || (function() {
      */
     function getPageTokens() {
         let curPage = Campaign().get("playerpageid");
-        let tokens = filterObjs(x => ((x.get("_subtype") === "token") && (x.get("_pageid") === curPage)));
-        return tokens;
+        return filterObjs(x => ((x.get("_subtype") === "token") && (x.get("_pageid") === curPage)));
     }
 
     /**
@@ -1290,8 +1287,7 @@ var Pathfinder2Utils = Pathfinder2Utils || (function() {
         if (char === null) {
             return null;
         }
-        let result = getAttrByName(char.id, property);
-        return result;
+        return getAttrByName(char.id, property);
     }
 
     /**
@@ -1353,7 +1349,6 @@ var Pathfinder2Utils = Pathfinder2Utils || (function() {
      * @returns {{roll: number, text: string}} The roll result.
      */
     function rollAttribute(target, attributes, modifiers, tags) {
-        let char = getCharForToken(target);
         let impliedtags = [];
         let modString = "";
         let ok = false;
@@ -1445,7 +1440,7 @@ var Pathfinder2Utils = Pathfinder2Utils || (function() {
         }
         let resString = "10 + " + profBonus + " = " + (10+profInt);
         let hitLvl = highestLevelRollBeats(profInt+10);
-        resString = resString + " (Lv" + hitLvl + ", +" + (profBonus) + "opposing)";
+        resString = resString + " (" + profLetter + ") (Lv" + hitLvl + ", +" + (profBonus) + " opposing)";
         return { "text": resString, "roll": 10+profInt };
     }
 
@@ -1548,7 +1543,6 @@ var Pathfinder2Utils = Pathfinder2Utils || (function() {
         }
         let fulltags = tags.concat(impliedtags);
         for (let target of targets) {
-            let char = getCharForToken(target);
             let propertyValue = getTokenAttr(target, attr.field);
             let name = getTokenName(target);
             let tagmod = calculateTotalMod(target, fulltags);
@@ -1710,7 +1704,7 @@ var Pathfinder2Utils = Pathfinder2Utils || (function() {
 
         // Default to all tokens we control.
         let allTokens = getPageTokens();
-        let possTokens = null;
+        let possTokens = [];
         for (let token of allTokens) {
             let char = getCharForToken(token);
             if (char === null) continue;
@@ -1881,7 +1875,6 @@ var Pathfinder2Utils = Pathfinder2Utils || (function() {
             for (let mod of state.PF2.modifiers) {
                 if (modApplies(mod, target, tags)) {
                     out = out + "<tr>";
-                    let ok = false;
                     let imod = parseInt(mod.value,10);
                     if (mod.cat !== "u") {
                         if (imod >= 0) {

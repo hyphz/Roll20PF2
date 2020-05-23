@@ -1,7 +1,7 @@
 
 /** @typedef {{get: function(string):(string|number|boolean),
  *             set: function(string,string):void,
- *             id: string}} Roll20Object */
+ *             id: string}} */
 var Roll20Object;
 
 /**
