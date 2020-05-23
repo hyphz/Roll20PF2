@@ -1044,6 +1044,24 @@ var Pathfinder2Utils = Pathfinder2Utils || (function() {
     ];
 
 
+    function insertDictDeDupe(hash, key, value) {
+        if (hash[key + " 1"]) {
+            let index = 1;
+            while (hash[key + " " + index.toString()]) {
+                index++;
+            }
+            hash[key + " " + index.toString()] = value;
+        } else {
+            if (hash[key]) {
+                hash[key + " 1"] = hash[key];
+                delete hash[key];
+                hash[key + " 2"] = value;
+            } else {
+                hash[key] = value;
+            }
+        }
+    }
+
     /**
      * Send a message to public chat with the script's name.
      * @param {string} msg The message to send
@@ -1494,7 +1512,7 @@ var Pathfinder2Utils = Pathfinder2Utils || (function() {
             }
             // All ok, do the roll
             let roll = rollAttribute(target, [getNamedField(skill)],[], tags);
-            results[name] = roll.text + " (" + standardiseSkillLetter(skillLevel) + ")";
+            insertDictDeDupe(results, name, roll.text + " (" + standardiseSkillLetter(skillLevel) + ")");
         }
         let header = ability.name;
         if (wasFreeSkill) header = header + " (" + freeSkill + ")";
@@ -1551,14 +1569,14 @@ var Pathfinder2Utils = Pathfinder2Utils || (function() {
                 results[name] = "(No sheet)";
             } else {
                 if (tagmod === 0) {
-                    results[name] = propertyValue;
+                    insertDictDeDupe(results, name, propertyValue);
                 } else {
                     let output = appendNumToSum(propertyValue, tagmod);
                     let intValue = parseInt(propertyValue,10);
                     if (!isNaN(intValue)) {
-                        results[name] = output + " = " + (intValue+tagmod);
+                        insertDictDeDupe(results, name,  output + " = " + (intValue+tagmod));
                     } else {
-                        results[name] = output;
+                        insertDictDeDupe(results, name, output);
                     }
                 }
             }
@@ -1590,7 +1608,7 @@ var Pathfinder2Utils = Pathfinder2Utils || (function() {
             } else {
                 roll = rollAttribute(target, [attr], [], tags);
             }
-            results[name] = roll.text;
+            insertDictDeDupe(results, name, roll.text);
             if (setInit) updateTurnOrder(target, roll.roll);
         }
         let header = "Roll " + attr.name;
@@ -1644,7 +1662,6 @@ var Pathfinder2Utils = Pathfinder2Utils || (function() {
             let results = {};
             results[bestName] = bestText;
             return (dictToTemplate("Best " + attr.name, results));
-
         }
     }
 
@@ -1668,7 +1685,7 @@ var Pathfinder2Utils = Pathfinder2Utils || (function() {
             let name = getTokenName(target);
             if (name === undefined) continue;
             let result = skillAssurance(target, attr.field);
-            results[name] = result.text;
+            insertDictDeDupe(results, name, result.text);
         }
         let header = "Assurance " + attr.name;
         return (dictToTemplate(header, results));
@@ -2092,7 +2109,6 @@ var Pathfinder2Utils = Pathfinder2Utils || (function() {
             return mod;
         });
         state.PF2.modifiers = _.reject(state.PF2.modifiers, mod => (mod.targets.length === 0));
-
     }
 
     function install() {
