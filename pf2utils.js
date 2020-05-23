@@ -71,7 +71,9 @@ var Pathfinder2Utils = Pathfinder2Utils || (function() {
         { name:"will", field: "saving_throws_will", type:fieldType.stat, stat: statId.wis },
         { name:"perception", field: "perception", type:fieldType.skill, stat: statId.wis },
         { name:"level", field: "level", type:fieldType.calculated },
-        { name:"initiative", field: "initiative_modifier", type:fieldType.calculated }];
+        { name:"initiative", field: "initiative_modifier", type:fieldType.calculated },
+        { name:"melee", field: "repeating_melee-strikes_$0_weapon_strike", type:fieldType.calculated, stat:statId.str },
+        { name:"ranged", field: "repeating_ranged-strikes_$0_weapon_strike", type:fieldType.calculated, stat:statId.dex }];
 
     /** @type {!Array<{type:string, skill:string}>} */
     const creature_identify = [
