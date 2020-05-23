@@ -39,7 +39,7 @@ function _(obj) {};
  * @template A
  * @template B
  * @param {Object<A,B>|Array<B>} obj
- * @param {function(B,=(A|number),=(Object<A,B>|Array<B>)):void} iterator
+ * @param {function(B,(A|number)=,(Object<A,B>|Array<B>)=):void} iterator
  * @param {Object=} opt_context
  */
 _.each = function(obj, iterator, opt_context) {};

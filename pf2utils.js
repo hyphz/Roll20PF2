@@ -2082,8 +2082,22 @@ var Pathfinder2Utils = Pathfinder2Utils || (function() {
         }
     }
 
+    /**
+     * Event handler for when a token is deleted from the tabletop.
+     * @param {!Roll20Object} obj The roll20 object deleted.
+     */
+    function tokenGone(obj) {
+        state.PF2.modifiers = _.map(state.PF2.modifiers, mod => {
+            mod.targets = _.reject(mod.targets, target => (target === obj.id));
+            return mod;
+        });
+        state.PF2.modifiers = _.reject(state.PF2.modifiers, mod => (mod.targets.length === 0));
+
+    }
+
     function install() {
         on("chat:message", (msg) => message(msg));
+        on("destroy:graphic", (obj) => tokenGone(obj));
         if (!state.hasOwnProperty("PF2")) {
             log("Initialized state.");
             state.PF2 = {};
