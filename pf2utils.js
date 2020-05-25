@@ -1453,7 +1453,16 @@ var Pathfinder2Utils = Pathfinder2Utils || (function() {
                 let tagName = st_names[attr.stat];
                 if (!impliedtags.includes(tagName)) impliedtags.push(tagName);
             }
+            if (attr.type === fieldType.save) {
+                if (!impliedtags.includes("save")) impliedtags.push("save");
+            }
+            if (attr.type === fieldType.skill) {
+                if (!impliedtags.includes("skill")) impliedtags.push("skill");
+            }
+
         }
+
+
 
         /* Calculate the total modifier for all tags and add that to specified modules. */
         let fulltags = tags.concat(impliedtags);
@@ -1934,6 +1943,9 @@ var Pathfinder2Utils = Pathfinder2Utils || (function() {
         for (let target of targets) {
             let char = getCharForToken(target);
             if (char !== null) {
+                tags.push("damage");
+                let mod = calculateTotalMod(target, tags);
+                amount = amount + mod;
                 if (tokenIsPC(target)) {
                     let hp = getTokenAttr(target, "hit_points");
                     setTokenAttr(target, "hit_points", hp-amount);
