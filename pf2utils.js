@@ -1000,6 +1000,9 @@ var Pathfinder2Utils = Pathfinder2Utils || (function() {
         {cmd: "rollinit", params: [{ name: "property", default: "perception"}], activeOption: true,
             do: ((p,t,r,a) => rollProperty(p.property,t,true,a, r))},
 
+        {cmd: "damage", params: [{ name: "amount", mustInt: true }], activeOption: true,
+            do: ((p, t, r, a) => damage(p.amount,t,r,a))},
+
         {cat: "mod", cmd: "list", params: [], noTarget: true,
             do: ((p,t,r,a) => listMods(r))},
 
@@ -1046,6 +1049,13 @@ var Pathfinder2Utils = Pathfinder2Utils || (function() {
     ];
 
 
+    /**
+     * Inserts a key-value pair into a dictionary. If the key is already present, add
+     * distinguishing numbers to the elements to break the tie.
+     * @param {Object<String,any>} hash
+     * @param {String} key
+     * @param {any} value
+     */
     function insertDictDeDupe(hash, key, value) {
         if (hash[key + " 1"]) {
             let index = 1;
@@ -1144,7 +1154,7 @@ var Pathfinder2Utils = Pathfinder2Utils || (function() {
     }
 
     /**
-     * Get all tokens listed as selected on an input message.
+     * Get all tokens listed as "selected" on an input message.
      * @param selected The selected component of the input message.
      * @returns {!Array<!Roll20Object>} The list of selected tokens.
      */
@@ -1206,10 +1216,32 @@ var Pathfinder2Utils = Pathfinder2Utils || (function() {
         let char = getCharForToken(token);
         if (char !== null) {
             let charName = char.get("name");
-            if (!isAbsentString(charName)) return charName;
+            if (!isAbsentString(charName)) {
+                let tokenName = token.get("name");
+                if ((!isAbsentString(tokenName)) && (abbreviate(tokenName) !== abbreviate(charName))) {
+                    return token.get("name") + " [" + charName + "]";
+                } else {
+                    return charName;
+                }
+            }
         }
         if (!isAbsentString(token.get("name"))) return token.get("name");
         return "(Unknown)";
+    }
+
+    function tokenNameMatches(token, specName) {
+        let abkey = abbreviate(specName);
+        let char = getCharForToken(token);
+        if (!char) return false;
+        let charName = char.get("name");
+        if (!isAbsentString(charName)) {
+            if (abbreviate(charName).startsWith(abkey)) return true;
+        }
+        let tokenName = token.get("name");
+        if (!isAbsentString(tokenName)) {
+            if (abbreviate(tokenName).startsWith(abkey)) return true;
+        }
+        return false;
     }
 
     /**
@@ -1232,6 +1264,30 @@ var Pathfinder2Utils = Pathfinder2Utils || (function() {
         return (_.some(char.get("controlledby"), (x => !playerIsGM(x))));
     }
 
+    function processInlinerolls(msg) {
+        if(_.has(msg,'inlinerolls')){
+            return _.chain(msg.inlinerolls)
+                .reduce(function(m,v,k){
+                    var ti=_.reduce(v.results.rolls,function(m2,v2){
+                        if(_.has(v2,'table')){
+                            m2.push(_.reduce(v2.results,function(m3,v3){
+                                m3.push(v3.tableItem.name);
+                                return m3;
+                            },[]).join(', '));
+                        }
+                        return m2;
+                    },[]).join(', ');
+                    m['$[['+k+']]']= (ti.length && ti) || v.results.total || 0;
+                    return m;
+                },{})
+                .reduce(function(m,v,k){
+                    return m.replace(k,v);
+                },msg.content)
+                .value();
+        } else {
+            return msg.content;
+        }
+    }
 
     /**
      * Find the tokens referred to by a fragment of a target specifier.
@@ -1250,7 +1306,7 @@ var Pathfinder2Utils = Pathfinder2Utils || (function() {
             } else if (canonSpec === "all") {
                 if (getCharForToken(token) !== null) matches.push(token);
             } else {
-                if (abbreviate(getTokenName(token)).startsWith(canonSpec)) matches.push(token);
+                if (tokenNameMatches(token,canonSpec)) matches.push(token);
             }
         }
         return matches;
@@ -1302,12 +1358,26 @@ var Pathfinder2Utils = Pathfinder2Utils || (function() {
      * @param {string} property The name of the property.
      * @returns {null|string|number} The property value or null if it's missing.
      */
-    function getTokenAttr(token, property) {
+    function getTokenAttr(token, property, max) {
         let char = getCharForToken(token);
         if (char === null) {
             return null;
         }
-        return getAttrByName(char.id, property);
+        if (!max) {
+            return getAttrByName(char.id, property);
+        } else {
+            return getAttrByName(char.id, property, "max");
+        }
+    }
+
+    function setTokenAttr(token, property, value) {
+        let char = getCharForToken(token);
+        let attribute = findObjs({
+            _type: 'attribute',
+            _characterid: char,
+            name: property
+        }, {caseInsensitive: true})[0];
+        attribute.set("current",value);
     }
 
     /**
@@ -1715,6 +1785,7 @@ var Pathfinder2Utils = Pathfinder2Utils || (function() {
      */
     function getInferredTargets(msg) {
         // Were there tokens selected? If so, use those.
+
         let selected = selectedTokens(msg.selected);
         if (selected !== null) return selected;
 
@@ -1856,6 +1927,35 @@ var Pathfinder2Utils = Pathfinder2Utils || (function() {
         for (let cat in worsts) { total += worsts[cat]; }
         return total;
     }
+
+    function damage(amount, targets, tags, active) {
+        if (!active) return "Damage command has no passive function.";
+        let results = {};
+        for (let target of targets) {
+            let char = getCharForToken(target);
+            if (char !== null) {
+                if (tokenIsPC(target)) {
+                    let hp = getTokenAttr(target, "hit_points");
+                    setTokenAttr(target, "hit_points", hp-amount);
+                    insertDictDeDupe(results, getTokenName(target), hp-amount);
+                } else {
+                    if (isAbsentString(target.get("bar1_max"))) {
+                        let hp = getTokenAttr(target, "hit_points");
+                        target.set("bar1_max", getTokenAttr(target, "hit_points", true));
+                        target.set("bar1_value", hp-amount);
+                        insertDictDeDupe(results, getTokenName(target), hp-amount);
+                    } else {
+                        let hp = parseInt(target.get("bar1_value"),10);
+                        target.set("bar1_value", hp-amount);
+                        insertDictDeDupe(results, getTokenName(target), hp-amount);
+                    }
+                }
+            }
+        }
+        return dictToTemplate("HP remaining",results);
+    }
+
+
     /**
      * Explain the modifier total for given targets and tags. This corresponds to the mod explain command and
      * could probably be better written.
@@ -1943,6 +2043,7 @@ var Pathfinder2Utils = Pathfinder2Utils || (function() {
         return desc;
     }
 
+
     /**
      * Message event handler.
      * @param msg The incoming message.
@@ -1953,6 +2054,7 @@ var Pathfinder2Utils = Pathfinder2Utils || (function() {
             if (msg.content.startsWith("!pf")) {
                 // If it starts with !pfs it's secret. If it starts with something else that isn't exactly !pf,
                 // eg !pffoo, it's not for us at all.
+                msg.content = processInlinerolls(msg);
                 let allParts = msg.content.split(" ");
                 let secret = false;
                 if (allParts[0] === "!pfs") {
