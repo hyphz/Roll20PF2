@@ -1003,6 +1003,9 @@ var Pathfinder2Utils = Pathfinder2Utils || (function() {
         {cmd: "damage", params: [{ name: "amount", mustInt: true }], activeOption: true,
             do: ((p, t, r, a) => damage(p.amount,t,r,a))},
 
+        {cmd: "heal", params: [{ name: "amount", mustInt: true }], activeOption: true,
+            do: ((p, t, r, a) => heal(p.amount,t,r,a))},
+
         {cat: "mod", cmd: "list", params: [], noTarget: true,
             do: ((p,t,r,a) => listMods(r))},
 
@@ -1374,10 +1377,17 @@ var Pathfinder2Utils = Pathfinder2Utils || (function() {
         let char = getCharForToken(token);
         let attribute = findObjs({
             _type: 'attribute',
-            _characterid: char,
+            _characterid: char.id,
             name: property
         }, {caseInsensitive: true})[0];
-        attribute.set("current",value);
+        if (!attribute) {
+            log("Failed to find/set attribute " + property + " on token " + token.id + " linked to character " + char.id);
+            if (getAttrByName(char.id, property)) {
+                log("Did get it with getAttrByName, though. WTF.");
+            }
+        } else {
+            attribute.set("current",value);
+        }
     }
 
     /**
@@ -1939,6 +1949,7 @@ var Pathfinder2Utils = Pathfinder2Utils || (function() {
 
     function damage(amount, targets, tags, active) {
         if (!active) return "Damage command has no passive function.";
+        if (amount < 0) return "Use heal command to restore hit points.";
         let results = {};
         for (let target of targets) {
             let char = getCharForToken(target);
@@ -1960,6 +1971,43 @@ var Pathfinder2Utils = Pathfinder2Utils || (function() {
                         let hp = parseInt(target.get("bar1_value"),10);
                         target.set("bar1_value", hp-amount);
                         insertDictDeDupe(results, getTokenName(target), hp-amount);
+                    }
+                }
+            }
+        }
+        return dictToTemplate("HP remaining",results);
+    }
+
+    function heal(amount, targets, tags, active) {
+        if (!active) return "Heal command has no passive function.";
+        if (amount < 0) return "Use damage command to remove hit points.";
+        let results = {};
+        for (let target of targets) {
+            let char = getCharForToken(target);
+            if (char !== null) {
+                tags.push("healing");
+                let mod = calculateTotalMod(target, tags);
+                amount = amount + mod;
+                if (tokenIsPC(target)) {
+                    let hp = getTokenAttr(target, "hit_points");
+                    let maxHp = getTokenAttr(target, "hit_points", true);
+                    let result = Math.min(hp+amount, maxHp);
+                    setTokenAttr(target, "hit_points", result);
+                    insertDictDeDupe(results, getTokenName(target), result);
+                } else {
+                    if (isAbsentString(target.get("bar1_max"))) {
+                        let hp = getTokenAttr(target, "hit_points");
+                        let maxHp = getTokenAttr(target, "hit_points", true);
+                        target.set("bar1_max", maxHp);
+                        let result = Math.min(hp+amount, maxHp);
+                        target.set("bar1_value", result);
+                        insertDictDeDupe(results, getTokenName(target), result);
+                    } else {
+                        let hp = parseInt(target.get("bar1_value"),10);
+                        let maxHp = parseInt(target.get("bar1_max"),10);
+                        let result = Math.min(hp+amount, maxHp);
+                        target.set("bar1_value", result);
+                        insertDictDeDupe(results, getTokenName(target), result);
                     }
                 }
             }
