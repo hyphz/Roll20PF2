@@ -1112,18 +1112,6 @@ var Pathfinder2Utils = Pathfinder2Utils || (function() {
     }
 
     /**
-     * Checks if a string parameter is effectively absent via being null or blank.
-     * @param {?string} str
-     * @returns {boolean} True if the string is effectively null.
-     */
-    function isAbsentString(str) {
-        if (str === null) return true;
-        if (str === undefined) return true;
-        return str === "";
-
-    }
-
-    /**
      * Return an ordinal number for the Pathfinder 2 skill proficiency letter specified.
      * @param {string} letter The skill letter.
      * @returns {number} An ordinal rank for the skill proficiency, with unknown values defaulted to untrained.
@@ -1219,16 +1207,16 @@ var Pathfinder2Utils = Pathfinder2Utils || (function() {
         let char = getCharForToken(token);
         if (char !== null) {
             let charName = char.get("name");
-            if (!isAbsentString(charName)) {
+            if (charName) {
                 let tokenName = token.get("name");
-                if ((!isAbsentString(tokenName)) && (abbreviate(tokenName) !== abbreviate(charName))) {
+                if ((tokenName) && (abbreviate(tokenName) !== abbreviate(charName))) {
                     return token.get("name") + " [" + charName + "]";
                 } else {
                     return charName;
                 }
             }
         }
-        if (!isAbsentString(token.get("name"))) return token.get("name");
+        if ((token.get("name"))) return token.get("name");
         return "(Unknown)";
     }
 
@@ -1237,11 +1225,11 @@ var Pathfinder2Utils = Pathfinder2Utils || (function() {
         let char = getCharForToken(token);
         if (!char) return false;
         let charName = char.get("name");
-        if (!isAbsentString(charName)) {
+        if (charName) {
             if (abbreviate(charName).startsWith(abkey)) return true;
         }
         let tokenName = token.get("name");
-        if (!isAbsentString(tokenName)) {
+        if (tokenName) {
             if (abbreviate(tokenName).startsWith(abkey)) return true;
         }
         return false;
@@ -1962,7 +1950,7 @@ var Pathfinder2Utils = Pathfinder2Utils || (function() {
                     setTokenAttr(target, "hit_points", hp-amount);
                     insertDictDeDupe(results, getTokenName(target), hp-amount);
                 } else {
-                    if (isAbsentString(target.get("bar1_max"))) {
+                    if (target.get("bar1_max")) {
                         let hp = getTokenAttr(target, "hit_points");
                         target.set("bar1_max", getTokenAttr(target, "hit_points", true));
                         target.set("bar1_value", hp-amount);
@@ -1995,7 +1983,7 @@ var Pathfinder2Utils = Pathfinder2Utils || (function() {
                     setTokenAttr(target, "hit_points", result);
                     insertDictDeDupe(results, getTokenName(target), result);
                 } else {
-                    if (isAbsentString(target.get("bar1_max"))) {
+                    if (target.get("bar1_max")) {
                         let hp = getTokenAttr(target, "hit_points");
                         let maxHp = getTokenAttr(target, "hit_points", true);
                         target.set("bar1_max", maxHp);
