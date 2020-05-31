@@ -1950,15 +1950,20 @@ var Pathfinder2Utils = Pathfinder2Utils || (function() {
                     setTokenAttr(target, "hit_points", hp-amount);
                     insertDictDeDupe(results, getTokenName(target), hp-amount);
                 } else {
-                    if (target.get("bar1_max")) {
+                    if (!target.get("bar1_max")) {
                         let hp = getTokenAttr(target, "hit_points");
                         target.set("bar1_max", getTokenAttr(target, "hit_points", true));
                         target.set("bar1_value", hp-amount);
                         insertDictDeDupe(results, getTokenName(target), hp-amount);
                     } else {
                         let hp = parseInt(target.get("bar1_value"),10);
-                        target.set("bar1_value", hp-amount);
-                        insertDictDeDupe(results, getTokenName(target), hp-amount);
+                        if (isNaN(hp)) {
+                            insertDictDeDupe(results, getTokenName(target), "[Cannot apply damage because bar 1 is a non-numeric value.]");
+                        } else {
+                            target.set("bar1_value", hp-amount);
+                            insertDictDeDupe(results, getTokenName(target), hp-amount);
+                        }
+
                     }
                 }
             }
@@ -1983,7 +1988,7 @@ var Pathfinder2Utils = Pathfinder2Utils || (function() {
                     setTokenAttr(target, "hit_points", result);
                     insertDictDeDupe(results, getTokenName(target), result);
                 } else {
-                    if (target.get("bar1_max")) {
+                    if (!target.get("bar1_max")) {
                         let hp = getTokenAttr(target, "hit_points");
                         let maxHp = getTokenAttr(target, "hit_points", true);
                         target.set("bar1_max", maxHp);
